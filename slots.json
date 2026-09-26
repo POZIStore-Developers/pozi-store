@@ -3,9 +3,9 @@
     {
       "id": 1,
       "repo": "pozi-store-server-1",
-      "taken": false,
-      "owner": null,
-      "password_hash": null
+      "taken": true,
+      "owner": "timohetik",
+      "password_hash": "$2b$12$rIhBpQCwQNU9Z58cy2yIVO5XPSDQzhf.Uzucs85xivKwXZcNFnxCq"
     },
     {
       "id": 2,
