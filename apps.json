@@ -1,3 +1,26 @@
 {
-  "apps": []
+  "apps": [
+    {
+      "id": "pozibrowser",
+      "name": "POZIBrowser",
+      "description": "Удобный Браузер от POZIHUME",
+      "readme": "Удобный браузер от POZIHUME, \nPOZIBrowser - браузер для людей сделаннный людьми, красивый , прозрачность, подсветка, все это ждет вас в POZIBrowser",
+      "version": "1.0",
+      "category": "Браузеры, Выход в Интернет",
+      "developer": "POZIHUME",
+      "icon": "https://github.com/POZIStore-Developers/pozi-store-server-pozihume/releases/download/v1.0/a9f5767a-deb1-40f3-b306-729af98764d9.ico",
+      "banner": "https://github.com/POZIStore-Developers/pozi-store-server-pozihume/releases/download/v1.0/ChatGPT.Image.26.2026.18_24_00.png",
+      "screenshots": [
+        "https://github.com/POZIStore-Developers/pozi-store-server-pozihume/releases/download/v1.0/screenshot_pozibrowser_0.png",
+        "https://github.com/POZIStore-Developers/pozi-store-server-pozihume/releases/download/v1.0/screenshot_pozibrowser_1.png",
+        "https://github.com/POZIStore-Developers/pozi-store-server-pozihume/releases/download/v1.0/screenshot_pozibrowser_2.png",
+        "https://github.com/POZIStore-Developers/pozi-store-server-pozihume/releases/download/v1.0/screenshot_pozibrowser_3.png"
+      ],
+      "download_url": "https://github.com/POZIStore-Developers/pozi-store-server-pozihume/releases/download/v1.0/Pozibrowser.exe",
+      "changelog": "",
+      "allow_old_versions": true,
+      "size": "?",
+      "created_at": "2026-09-26T18:38:26.341380"
+    }
+  ]
 }
