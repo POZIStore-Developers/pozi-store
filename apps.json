@@ -1,3 +1,15 @@
 {
-  "apps": []
+  "apps": [
+    {
+      "id": "pozibrowser",
+      "name": "POZIBrowser",
+      "description": "браузер",
+      "version": "1.0",
+      "category": "Другое",
+      "developer": "POZIHUME",
+      "icon": "C:/Users/timoh/Downloads/ChatGPT Image 22 сент. 2026 г., 22_05_17.png",
+      "download_url": "C:/Users/timoh/Downloads/Pozibrowser.exe",
+      "size": "?"
+    }
+  ]
 }
