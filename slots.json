@@ -4,6 +4,8 @@
     {"id": 2, "repo": "pozi-store-server-2", "taken": false, "owner": null, "password_hash": null},
     {"id": 3, "repo": "pozi-store-server-3", "taken": false, "owner": null, "password_hash": null},
     {"id": 4, "repo": "pozi-store-server-4", "taken": false, "owner": null, "password_hash": null},
-    {"id": 5, "repo": "pozi-store-server-5", "taken": false, "owner": null, "password_hash": null}
+    {"id": 5, "repo": "pozi-store-server-5", "taken": false, "owner": null, "password_hash": null},
+    {"id": 6, "repo": "pozi-store-server", "taken": false, "owner": null, "password_hash": null},
+    {"id": 7, "repo": "pozi-store-server-pozihume", "taken": false, "owner": null, "password_hash": null}
   ]
 }
