@@ -1,11 +1,53 @@
 {
   "slots": [
-    {"id": 1, "repo": "pozi-store-server-1", "taken": false, "owner": null, "password_hash": null},
-    {"id": 2, "repo": "pozi-store-server-2", "taken": false, "owner": null, "password_hash": null},
-    {"id": 3, "repo": "pozi-store-server-3", "taken": false, "owner": null, "password_hash": null},
-    {"id": 4, "repo": "pozi-store-server-4", "taken": false, "owner": null, "password_hash": null},
-    {"id": 5, "repo": "pozi-store-server-5", "taken": false, "owner": null, "password_hash": null},
-    {"id": 6, "repo": "pozi-store-server", "taken": false, "owner": null, "password_hash": null},
-    {"id": 7, "repo": "pozi-store-server-pozihume", "taken": false, "owner": null, "password_hash": null}
+    {
+      "id": 1,
+      "repo": "pozi-store-server-1",
+      "taken": false,
+      "owner": null,
+      "password_hash": null
+    },
+    {
+      "id": 2,
+      "repo": "pozi-store-server-2",
+      "taken": false,
+      "owner": null,
+      "password_hash": null
+    },
+    {
+      "id": 3,
+      "repo": "pozi-store-server-3",
+      "taken": false,
+      "owner": null,
+      "password_hash": null
+    },
+    {
+      "id": 4,
+      "repo": "pozi-store-server-4",
+      "taken": false,
+      "owner": null,
+      "password_hash": null
+    },
+    {
+      "id": 5,
+      "repo": "pozi-store-server-5",
+      "taken": false,
+      "owner": null,
+      "password_hash": null
+    },
+    {
+      "id": 6,
+      "repo": "pozi-store-server",
+      "taken": false,
+      "owner": null,
+      "password_hash": null
+    },
+    {
+      "id": 7,
+      "repo": "pozi-store-server-pozihume",
+      "taken": true,
+      "owner": "POZIHUME",
+      "password_hash": "$2b$12$vnEXrX8uPBGgOjCzcJswyufdtovIEd3RuqlHdIxUwmfuQbFwgYH/6"
+    }
   ]
 }
