@@ -1,26 +1,3 @@
 {
-  "apps": [
-    {
-      "id": "pozibrowser",
-      "name": "POZIBrowser",
-      "description": "браузер",
-      "version": "1.0",
-      "category": "Другое",
-      "developer": "POZIHUME",
-      "icon": "C:/Users/timoh/Downloads/ChatGPT Image 22 сент. 2026 г., 22_05_17.png",
-      "download_url": "C:/Users/timoh/Downloads/Pozibrowser.exe",
-      "size": "?"
-    },
-    {
-      "id": "pozibrowser",
-      "name": "pozibrowser",
-      "description": "браузер для людей",
-      "version": "1.0",
-      "category": "Другое",
-      "developer": "POZIHUME",
-      "icon": "https://github.com/POZIStore-Developers/pozi-store-server-pozihume/releases/download/v1.0/a9f5767a-deb1-40f3-b306-729af98764d9.ico",
-      "download_url": "https://github.com/POZIStore-Developers/pozi-store-server-pozihume/releases/download/v1.0/Pozibrowser.exe",
-      "size": "?"
-    }
-  ]
+  "apps": []
 }
