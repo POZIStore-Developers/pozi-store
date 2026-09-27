@@ -1,0 +1,51 @@
+name: POZIStore Action Server
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Действие'
+        required: true
+        default: 'hello'
+      payload:
+        description: 'JSON-данные'
+        required: false
+        default: '{}'
+      username:
+        description: 'Логин'
+        required: false
+        default: ''
+      password:
+        description: 'Пароль'
+        required: false
+        default: ''
+
+jobs:
+  handle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: pip install bcrypt requests
+
+      - name: Run handler
+        env:
+          SERVER_TOKEN: ${{ secrets.SERVER_TOKEN }}
+          ACTION: ${{ github.event.inputs.action }}
+          PAYLOAD: ${{ github.event.inputs.payload }}
+          USERNAME: ${{ github.event.inputs.username }}
+          PASSWORD: ${{ github.event.inputs.password }}
+        run: python .github/scripts/handler.py
+
+      - name: Upload result
+        uses: actions/upload-artifact@v4
+        with:
+          name: result
+          path: result.json
