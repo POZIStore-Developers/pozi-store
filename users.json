@@ -4,6 +4,7 @@
       "id": 1,
       "username": "timohik",
       "password_hash": "$2b$12$VdffigkIPL58cUiwby7umuitxHXcQxd9gJ1ck6Uul7XeffRJ/PV5S",
+      "role": "admin",
       "avatar": "",
       "banner": "",
       "description": "",
@@ -13,7 +14,8 @@
     {
       "id": 2,
       "username": "timohet347",
-      "password_hash": "$2b$12$oHCM/TxojUAVu53AKSEGHOSUqD0ag5AvIpd4DGcZr5jFVox/mY5hy",
+      "password_hash": "$2b$12$oHCM/TxojUAVu53AKSEGHOSuQ0ag5AviPd4DGcZr5jFVox/mY5hy",
+      "role": "user",
       "avatar": "",
       "banner": "",
       "description": "",
