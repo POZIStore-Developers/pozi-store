@@ -1,0 +1,11 @@
+{
+  "requests": [
+    {
+      "id": 1,
+      "username": "testuser123",
+      "user_id": 4,
+      "status": "pending",
+      "created_at": "2026-09-27T16:08:53.367611"
+    }
+  ]
+}
