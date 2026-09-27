@@ -1,6 +1,5 @@
 """
 Серверный обработчик для POZIStore.
-Запускается в GitHub Actions. Имеет доступ к SERVER_TOKEN.
 """
 import os
 import json
@@ -30,7 +29,6 @@ HEADERS = {
 # ============================================================
 
 def read_json_file(path):
-    """Читает JSON-файл из репо."""
     url = f"https://api.github.com/repos/{GITHUB_ORG}/{GITHUB_REPO}/contents/{path}"
     r = requests.get(url, headers=HEADERS)
     if r.status_code != 200:
@@ -41,17 +39,18 @@ def read_json_file(path):
 
 
 def write_json_file(path, content, sha, message):
-    """Записывает JSON-файл в репо."""
     url = f"https://api.github.com/repos/{GITHUB_ORG}/{GITHUB_REPO}/contents/{path}"
     new_content = base64.b64encode(
         json.dumps(content, ensure_ascii=False, indent=2).encode('utf-8')
     ).decode('utf-8')
-    r = requests.put(url, headers=HEADERS, json={
+    payload = {
         "message": message,
         "content": new_content,
-        "sha": sha
-    })
-    return r.status_code == 200
+    }
+    if sha:
+        payload["sha"] = sha
+    r = requests.put(url, headers=HEADERS, json=payload)
+    return r.status_code in (200, 201)
 
 
 # ============================================================
@@ -59,7 +58,6 @@ def write_json_file(path, content, sha, message):
 # ============================================================
 
 def check_auth():
-    """Проверяет логин/пароль. Возвращает юзера или None."""
     users, _ = read_json_file("users.json")
     if not users:
         return None
@@ -76,7 +74,6 @@ def check_auth():
 # ============================================================
 
 def handle_hello():
-    """Тест."""
     return {
         "status": "ok",
         "message": "Hello from Actions!",
@@ -85,7 +82,6 @@ def handle_hello():
 
 
 def handle_check_auth():
-    """Проверка логина/пароля."""
     user = check_auth()
     if not user:
         return {"status": "error", "message": "Неверный логин или пароль"}
@@ -101,7 +97,6 @@ def handle_check_auth():
 # ============================================================
 
 def handle_register():
-    """Регистрация нового пользователя."""
     users, sha = read_json_file("users.json")
     if users is None:
         users = {"users": []}
@@ -135,7 +130,6 @@ def handle_register():
 
 
 def handle_login():
-    """Логин."""
     user = check_auth()
     if not user:
         return {"status": "error", "message": "Неверный логин или пароль"}
@@ -156,7 +150,6 @@ def handle_login():
 # ============================================================
 
 def handle_update_apps():
-    """Обновляет apps.json (только developer/admin)."""
     user = check_auth()
     if not user:
         return {"status": "error", "message": "Неверный логин или пароль"}
@@ -188,6 +181,14 @@ def handle_request_developer():
     if user.get("role") in ("developer", "admin"):
         return {"status": "error", "message": "Ты уже разработчик"}
 
+    payload = json.loads(PAYLOAD)
+    real_name = payload.get("real_name", "")
+    contact = payload.get("contact", "")
+    description = payload.get("description", "")
+
+    if not real_name or not contact or not description:
+        return {"status": "error", "message": "Заполни имя, контакт и описание"}
+
     reqs, sha = read_json_file("requests.json")
     if reqs is None:
         reqs = {"requests": []}
@@ -203,6 +204,9 @@ def handle_request_developer():
         "id": next_id,
         "username": USERNAME,
         "user_id": user.get("id"),
+        "real_name": real_name,
+        "contact": contact,
+        "description": description,
         "status": "pending",
         "created_at": datetime.now().isoformat()
     })
@@ -231,10 +235,9 @@ def handle_get_requests():
 # ============================================================
 
 def handle_create_repo():
-    """Создаёт репо pozi-store-server-{username} и даёт права юзеру."""
     user = check_auth()
     if not user or user.get("role") != "admin":
-        return {"status": "error", "message": "Только админ может создавать репо"}
+        return {"status": "error", "message": "Только админ"}
 
     payload = json.loads(PAYLOAD)
     target_username = payload.get("target_username", "")
@@ -256,7 +259,7 @@ def handle_create_repo():
         }
     )
 
-    if r.status_code not in (201, 422):  # 422 = уже существует
+    if r.status_code not in (201, 422):
         return {"status": "error", "message": f"Ошибка создания: {r.status_code} {r.text[:200]}"}
 
     # 2. Обновляем users.json — роль developer
@@ -282,7 +285,6 @@ def handle_create_repo():
 
 
 def handle_delete_repo():
-    """Удаляет репо разработчика (при бане/удалении)."""
     user = check_auth()
     if not user or user.get("role") != "admin":
         return {"status": "error", "message": "Только админ"}
@@ -308,7 +310,6 @@ def handle_delete_repo():
 # ============================================================
 
 def handle_ban_user():
-    """Бан/разбан юзера (только админ)."""
     user = check_auth()
     if not user or user.get("role") != "admin":
         return {"status": "error", "message": "Только админ"}
@@ -337,7 +338,6 @@ def handle_ban_user():
 
 
 def handle_set_role():
-    """Смена роли юзера (только админ)."""
     user = check_auth()
     if not user or user.get("role") != "admin":
         return {"status": "error", "message": "Только админ"}
