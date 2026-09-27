@@ -45,9 +45,9 @@
     {
       "id": 7,
       "repo": "pozi-store-server-pozihume",
-      "taken": true,
-      "owner": "POZIHUME",
-      "password_hash": "$2b$12$vnEXrX8uPBGgOjCzcJswyufdtovIEd3RuqlHdIxUwmfuQbFwgYH/6"
+      "taken": false,
+      "owner": null,
+      "password_hash": null
     }
   ]
 }
