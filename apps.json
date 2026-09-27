@@ -48,27 +48,6 @@
       "allow_old_versions": true,
       "size": "?",
       "created_at": "2026-09-27T16:16:29.573294"
-    },
-    {
-      "id": "test",
-      "name": "test",
-      "description": "тест",
-      "readme": "тест",
-      "version": "1.0",
-      "category": "Другое",
-      "developer": "POZIHUME",
-      "platform": "windows",
-      "icon": "",
-      "banner": "",
-      "shortcut_icon": "",
-      "screenshots": [],
-      "download_url": "https://github.com/POZIStore-Developers/pozi-store-server-pozihume/releases/download/v1.0/Pozibrowser.1.exe",
-      "changelog": "",
-      "allow_old_versions": false,
-      "age_rating": "0+",
-      "system_requirements": "",
-      "size": "?",
-      "created_at": "2026-09-27T22:03:32.742004"
     }
   ]
 }
