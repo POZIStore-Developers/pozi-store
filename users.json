@@ -61,13 +61,14 @@
       "id": 6,
       "username": "test",
       "password_hash": "$2b$12$/dMoxt./v4dxXIKfWFCFHuNlxkFsHIBgSRfvA4/Je8lrfZHI2qqRi",
-      "role": "user",
+      "role": "developer",
       "blocked": false,
       "avatar": "",
       "banner": "",
       "description": "",
       "website": "",
-      "created_at": "2026-09-29T18:09:25.632041"
+      "created_at": "2026-09-29T18:09:25.632041",
+      "repo": "pozi-store-server-test"
     }
   ]
 }
