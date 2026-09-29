@@ -62,7 +62,7 @@
       "username": "test",
       "password_hash": "$2b$12$/dMoxt./v4dxXIKfWFCFHuNlxkFsHIBgSRfvA4/Je8lrfZHI2qqRi",
       "role": "developer",
-      "blocked": false,
+      "blocked": true,
       "avatar": "",
       "banner": "",
       "description": "",
