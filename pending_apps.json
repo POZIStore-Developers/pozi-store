@@ -1,3 +1,37 @@
 {
-  "pending_apps": []
+  "pending_apps": [
+    {
+      "id": "build_a_house",
+      "name": "Build a House",
+      "description": "Построй дом и защитись от зомби!",
+      "readme": "Построй дом и защитись от зомби! Build a house - игра с более чем 40+ режимами, мультяшная графика, понятная задумка",
+      "version": "3.11",
+      "category": "Экшен, Аркады",
+      "developer": "POZIHUME",
+      "platform": "android",
+      "icon": "https://github.com/POZIStore-Developers/pozi-store-server-pozihume/releases/download/v3.11/photo_2023-03-08_15-03-37.jpg",
+      "banner": "https://github.com/POZIStore-Developers/pozi-store-server-pozihume/releases/download/v3.11/77695b10-64de-42b3-b4ea-667a3c533a36.png",
+      "shortcut_icon": "",
+      "screenshots": [
+        "https://github.com/POZIStore-Developers/pozi-store-server-pozihume/releases/download/v3.11/screenshot_build_a_house_0.jpg",
+        "https://github.com/POZIStore-Developers/pozi-store-server-pozihume/releases/download/v3.11/screenshot_build_a_house_1.jpg"
+      ],
+      "download_url": "https://github.com/POZIStore-Developers/pozi-store-server-pozihume/releases/download/v3.11/BuildaHouse.apk",
+      "changelog": "3.11 -\n-первая сцена загружается быстрее\n-теперь есть шанс засунуть онлайн и 3д в игру.\n-теперь есть пауза там можно: продолжить игру и перезапустить а также сделать скрин и сделать прицел.",
+      "allow_old_versions": true,
+      "age_rating": "0+",
+      "system_requirements": "",
+      "trailer_url": "https://github.com/POZIStore-Developers/pozi-store-server-pozihume/releases/download/v3.11/3.Build.a.house.get-save.com.1.mp4",
+      "demo_url": "",
+      "size": "?",
+      "submitted_at": "2026-09-30T14:01:44.364057",
+      "submitted_by": "POZIHUME",
+      "edit_mode": true,
+      "vt_status": "pending",
+      "vt_link": "",
+      "vt_analysis_id": "",
+      "status": "pending",
+      "reject_reason": ""
+    }
+  ]
 }
