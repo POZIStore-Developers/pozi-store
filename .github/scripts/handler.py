@@ -1,5 +1,6 @@
 """
 Серверный обработчик для POZIStore.
+Включает поддержку VirusTotal.
 """
 import os
 import json
@@ -10,6 +11,7 @@ from datetime import datetime
 
 
 SERVER_TOKEN = os.environ.get("SERVER_TOKEN", "")
+VT_API_KEY = os.environ.get("VT_API_KEY", "")
 ACTION = os.environ.get("ACTION", "hello")
 PAYLOAD = os.environ.get("PAYLOAD", "{}")
 USERNAME = os.environ.get("USERNAME", "")
@@ -21,6 +23,11 @@ GITHUB_REPO = "pozi-store"
 HEADERS = {
     "Authorization": f"token {SERVER_TOKEN}",
     "Accept": "application/vnd.github.v3+json"
+}
+
+VT_HEADERS = {
+    "x-apikey": VT_API_KEY,
+    "Accept": "application/json"
 }
 
 
@@ -77,7 +84,8 @@ def handle_hello():
     return {
         "status": "ok",
         "message": "Hello from Actions!",
-        "server_token_length": len(SERVER_TOKEN)
+        "server_token_length": len(SERVER_TOKEN),
+        "vt_configured": bool(VT_API_KEY)
     }
 
 
@@ -173,7 +181,6 @@ def handle_update_apps():
 # ============================================================
 
 def handle_request_developer():
-    """Юзер подаёт заявку на разработчика."""
     user = check_auth()
     if not user:
         return {"status": "error", "message": "Неверный логин или пароль"}
@@ -194,7 +201,6 @@ def handle_request_developer():
         reqs = {"requests": []}
         sha = None
 
-    # Проверка на дубликат
     for r in reqs.get("requests", []):
         if r.get("username") == USERNAME and r.get("status") == "pending":
             return {"status": "error", "message": "Заявка уже подана"}
@@ -218,7 +224,6 @@ def handle_request_developer():
 
 
 def handle_get_requests():
-    """Список заявок (только админ)."""
     user = check_auth()
     if not user or user.get("role") != "admin":
         return {"status": "error", "message": "Нет прав"}
@@ -231,7 +236,7 @@ def handle_get_requests():
 
 
 # ============================================================
-# СОЗДАНИЕ РЕПО ДЛЯ РАЗРАБОТЧИКА
+# СОЗДАНИЕ / УДАЛЕНИЕ РЕПО
 # ============================================================
 
 def handle_create_repo():
@@ -247,7 +252,6 @@ def handle_create_repo():
 
     repo_name = f"pozi-store-server-{target_username.lower()}"
 
-    # 1. Создаём репо
     r = requests.post(
         f"https://api.github.com/orgs/{GITHUB_ORG}/repos",
         headers=HEADERS,
@@ -262,7 +266,6 @@ def handle_create_repo():
     if r.status_code not in (201, 422):
         return {"status": "error", "message": f"Ошибка создания: {r.status_code} {r.text[:200]}"}
 
-    # 2. Обновляем users.json — роль developer
     users, sha = read_json_file("users.json")
     for u in users.get("users", []):
         if u.get("username", "").lower() == target_username.lower():
@@ -271,7 +274,6 @@ def handle_create_repo():
             break
     write_json_file("users.json", users, sha, f"Set developer {target_username}")
 
-    # 3. Убираем заявку
     reqs, req_sha = read_json_file("requests.json")
     if reqs:
         reqs["requests"] = [
@@ -366,6 +368,155 @@ def handle_set_role():
 
 
 # ============================================================
+# VIRUSTOTAL
+# ============================================================
+
+def handle_scan_file():
+    """
+    Отправляет файл в VirusTotal.
+    Возвращает vt_status (pending / safe / ...) и vt_link.
+    """
+    payload = json.loads(PAYLOAD)
+    file_url = payload.get("file_url", "")
+    app_id = payload.get("app_id", "")
+
+    if not file_url or not app_id:
+        return {"status": "error", "message": "Нужны file_url и app_id"}
+
+    if not VT_API_KEY:
+        return {"status": "error", "message": "VT_API_KEY не настроен"}
+
+    # 1. Отправляем URL в VT
+    try:
+        r = requests.post(
+            "https://www.virustotal.com/api/v3/urls",
+            headers=VT_HEADERS,
+            data={"url": file_url},
+            timeout=30
+        )
+    except Exception as e:
+        return {"status": "error", "message": f"Ошибка VT: {e}"}
+
+    if r.status_code not in (200, 201):
+        return {
+            "status": "error",
+            "message": f"VT вернул {r.status_code}: {r.text[:200]}"
+        }
+
+    analysis_id = r.json().get("data", {}).get("id", "")
+    if not analysis_id:
+        return {"status": "error", "message": "Нет analysis_id"}
+
+    vt_link = f"https://www.virustotal.com/gui/url/{analysis_id.split('-')[-1]}"
+
+    # 2. Обновляем apps.json — ставим pending
+    apps, sha = read_json_file("apps.json")
+    if apps is None:
+        return {"status": "error", "message": "apps.json не найден"}
+
+    for a in apps.get("apps", []):
+        if a.get("id") == app_id:
+            a["vt_status"] = "pending"
+            a["vt_link"] = vt_link
+            a["vt_analysis_id"] = analysis_id
+            break
+
+    write_json_file("apps.json", apps, sha, f"VT pending {app_id}")
+
+    return {
+        "status": "ok",
+        "message": "Файл отправлен в VirusTotal",
+        "analysis_id": analysis_id,
+        "vt_link": vt_link,
+        "vt_status": "pending"
+    }
+
+
+def handle_check_scan():
+    """
+    Проверяет статус сканирования в VT.
+    Обновляет apps.json.
+    """
+    payload = json.loads(PAYLOAD)
+    app_id = payload.get("app_id", "")
+
+    if not app_id:
+        return {"status": "error", "message": "Нужен app_id"}
+
+    if not VT_API_KEY:
+        return {"status": "error", "message": "VT_API_KEY не настроен"}
+
+    # 1. Читаем apps.json
+    apps, sha = read_json_file("apps.json")
+    if apps is None:
+        return {"status": "error", "message": "apps.json не найден"}
+
+    target = None
+    for a in apps.get("apps", []):
+        if a.get("id") == app_id:
+            target = a
+            break
+
+    if not target:
+        return {"status": "error", "message": "Приложение не найдено"}
+
+    analysis_id = target.get("vt_analysis_id", "")
+    if not analysis_id:
+        return {"status": "error", "message": "Нет analysis_id"}
+
+    # 2. Запрашиваем VT
+    try:
+        r = requests.get(
+            f"https://www.virustotal.com/api/v3/analyses/{analysis_id}",
+            headers=VT_HEADERS,
+            timeout=30
+        )
+    except Exception as e:
+        return {"status": "error", "message": f"Ошибка VT: {e}"}
+
+    if r.status_code != 200:
+        return {"status": "error", "message": f"VT вернул {r.status_code}"}
+
+    data = r.json().get("data", {})
+    attrs = data.get("attributes", {})
+    status = attrs.get("status", "queued")
+
+    # 3. Если completed — определяем статус
+    if status == "completed":
+        stats = attrs.get("stats", {})
+        malicious = stats.get("malicious", 0)
+        suspicious = stats.get("suspicious", 0)
+
+        if malicious >= 5:
+            vt_status = "dangerous"
+        elif malicious >= 1 or suspicious >= 3:
+            vt_status = "suspicious"
+        elif malicious == 0 and suspicious == 0:
+            vt_status = "safe"
+        else:
+            vt_status = "normal"
+
+        target["vt_status"] = vt_status
+        write_json_file("apps.json", apps, sha, f"VT done {app_id}")
+
+        return {
+            "status": "ok",
+            "vt_status": vt_status,
+            "stats": stats
+        }
+
+    # Ещё идёт
+    target["vt_status"] = "pending"
+    write_json_file("apps.json", apps, sha, f"VT pending {app_id}")
+
+    return {
+        "status": "ok",
+        "vt_status": "pending",
+        "vt_raw_status": status
+    }
+
+
+# ============================================================
 # MAIN
 # ============================================================
 
@@ -382,6 +533,8 @@ def main():
         "delete_repo": handle_delete_repo,
         "ban_user": handle_ban_user,
         "set_role": handle_set_role,
+        "scan_file": handle_scan_file,
+        "check_scan": handle_check_scan,
     }
 
     handler = actions.get(ACTION)
