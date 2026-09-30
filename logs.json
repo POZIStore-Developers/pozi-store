@@ -49,6 +49,16 @@
       "target": "test",
       "details": "Разбан: ",
       "reason": ""
+    },
+    {
+      "id": 6,
+      "time": "2026-09-30T17:29:58.600678",
+      "user": "POZIHUME",
+      "role": "admin",
+      "action": "ban_user",
+      "target": "test",
+      "details": "Бан: по приколу",
+      "reason": "по приколу"
     }
   ]
 }
