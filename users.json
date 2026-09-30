@@ -48,7 +48,7 @@
       "id": 5,
       "username": "Timoger",
       "password_hash": "$2b$12$XuUIKRQF67m1t9GewAlOauqt8xGjTTcaaCBXbVOfNtTCiaUVYP0Uq",
-      "role": "developer",
+      "role": "moderator",
       "blocked": false,
       "avatar": "",
       "banner": "",
