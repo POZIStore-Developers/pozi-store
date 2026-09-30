@@ -89,6 +89,16 @@
       "target": "POZIHUME",
       "details": "",
       "reason": ""
+    },
+    {
+      "id": 10,
+      "time": "2026-09-30T18:12:06.714901",
+      "user": "POZIHUME",
+      "role": "admin",
+      "action": "set_vt_status",
+      "target": "build_a_house",
+      "details": "VT вручную: safe",
+      "reason": "Выпущено официальным разработчиком POZIHUME"
     }
   ]
 }
