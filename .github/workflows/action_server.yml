@@ -38,6 +38,7 @@ jobs:
       - name: Run handler
         env:
           SERVER_TOKEN: ${{ secrets.SERVER_TOKEN }}
+          VT_API_KEY: ${{ secrets.VT_API_KEY }}
           ACTION: ${{ github.event.inputs.action }}
           PAYLOAD: ${{ github.event.inputs.payload }}
           USERNAME: ${{ github.event.inputs.username }}
