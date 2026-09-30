@@ -47,7 +47,12 @@
       "changelog": "3.11 -\n-первая сцена загружается быстрее\n-теперь есть шанс засунуть онлайн и 3д в игру.\n-теперь есть пауза там можно: продолжить игру и перезапустить а также сделать скрин и сделать прицел.",
       "allow_old_versions": true,
       "size": "?",
-      "created_at": "2026-09-27T16:16:29.573294"
+      "created_at": "2026-09-27T16:16:29.573294",
+      "age_rating": "0+",
+      "system_requirements": "",
+      "trailer_url": "https://youtu.be/SgwkXWdguSE?si=m1du8M1N-7bOQPGU",
+      "demo_url": "",
+      "updated_at": "2026-09-30T16:30:36.701112"
     },
     {
       "id": "idk",
