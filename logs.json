@@ -1,3 +1,14 @@
 {
-  "logs": []
+  "logs": [
+    {
+      "id": 1,
+      "time": "2026-09-30T17:12:12.832279",
+      "user": "POZIHUME",
+      "role": "admin",
+      "action": "set_role",
+      "target": "timohet347",
+      "details": "Новая роль: moderator",
+      "reason": ""
+    }
+  ]
 }
