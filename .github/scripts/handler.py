@@ -1,6 +1,5 @@
 """
 Серверный обработчик для POZIStore.
-Модерация + VT + скрытие + логи + роли.
 """
 import os
 import json
@@ -33,10 +32,6 @@ VT_HEADERS = {
 MAX_LOGS = 2000
 
 
-# ============================================================
-# ЧТЕНИЕ / ЗАПИСЬ JSON
-# ============================================================
-
 def read_json_file(path):
     url = f"https://api.github.com/repos/{GITHUB_ORG}/{GITHUB_REPO}/contents/{path}"
     r = requests.get(url, headers=HEADERS)
@@ -62,12 +57,7 @@ def write_json_file(path, content, sha, message):
     return r.status_code in (200, 201)
 
 
-# ============================================================
-# ЛОГИ
-# ============================================================
-
 def write_log(user, role, action, target="", details="", reason=""):
-    """Записывает действие в logs.json."""
     try:
         logs, sha = read_json_file("logs.json")
         if logs is None:
@@ -97,10 +87,6 @@ def write_log(user, role, action, target="", details="", reason=""):
         print(f"[logs] Ошибка: {e}")
 
 
-# ============================================================
-# АВТОРИЗАЦИЯ
-# ============================================================
-
 def check_auth():
     users, _ = read_json_file("users.json")
     if not users:
@@ -113,6 +99,16 @@ def check_auth():
     return None
 
 
+def get_user_by_username(username):
+    users, _ = read_json_file("users.json")
+    if not users:
+        return None
+    for u in users.get("users", []):
+        if u.get("username", "").lower() == username.lower():
+            return u
+    return None
+
+
 def is_moderator_or_admin(user):
     return user and user.get("role") in ("moderator", "admin")
 
@@ -121,9 +117,7 @@ def is_admin(user):
     return user and user.get("role") == "admin"
 
 
-# ============================================================
-# ПРОСТЫЕ ДЕЙСТВИЯ
-# ============================================================
+# ==================== ПРОСТЫЕ ====================
 
 def handle_hello():
     return {
@@ -145,9 +139,7 @@ def handle_check_auth():
     }
 
 
-# ============================================================
-# РЕГИСТРАЦИЯ / ЛОГИН
-# ============================================================
+# ==================== РЕГИСТРАЦИЯ / ЛОГИН ====================
 
 def handle_register():
     users, sha = read_json_file("users.json")
@@ -207,9 +199,7 @@ def handle_login():
     }
 
 
-# ============================================================
-# МОДЕРАЦИЯ: ЗАЯВКИ НА ПУБЛИКАЦИЮ
-# ============================================================
+# ==================== МОДЕРАЦИЯ ====================
 
 def handle_request_publish():
     user = check_auth()
@@ -258,13 +248,9 @@ def handle_request_publish():
 
     write_log(user.get("username"), user.get("role"),
               "publish_request", target=app_data["id"],
-              details=f"Заявка на публикацию: {app_data.get('name')}")
+              details=f"Заявка: {app_data.get('name')}")
 
-    return {
-        "status": "ok",
-        "message": "Заявка отправлена на модерацию",
-        "app_id": app_data["id"]
-    }
+    return {"status": "ok", "message": "Заявка отправлена", "app_id": app_data["id"]}
 
 
 def handle_get_pending_apps():
@@ -327,12 +313,10 @@ def handle_approve_app():
         apps = {"apps": []}
         a_sha = None
 
-    # Готовим данные для apps.json
     app_for_catalog = {k: v for k, v in target.items()
                        if k not in ("submitted_at", "submitted_by",
                                     "edit_mode", "status", "reject_reason")}
 
-    # Дефолтные поля
     app_for_catalog.setdefault("hidden", False)
     app_for_catalog.setdefault("hidden_by", "")
     app_for_catalog.setdefault("hidden_reason", "")
@@ -345,7 +329,6 @@ def handle_approve_app():
         found = False
         for i, a in enumerate(apps.get("apps", [])):
             if a.get("id") == app_id:
-                # Сохраняем старые hidden-поля
                 for key in ("hidden", "hidden_by", "hidden_reason",
                             "vt_manual", "vt_manual_by",
                             "vt_manual_link", "vt_manual_comment"):
@@ -419,9 +402,7 @@ def handle_reject_app():
     return {"status": "ok", "message": "Заявка отклонена"}
 
 
-# ============================================================
-# СКРЫТИЕ / ВОССТАНОВЛЕНИЕ ПРИЛОЖЕНИЙ
-# ============================================================
+# ==================== СКРЫТИЕ ====================
 
 def handle_hide_app():
     user = check_auth()
@@ -459,7 +440,7 @@ def handle_hide_app():
               details=f"Скрыто: {reason}",
               reason=reason)
 
-    return {"status": "ok", "message": f"Приложение {app_id} скрыто"}
+    return {"status": "ok", "message": f"Приложение скрыто"}
 
 
 def handle_unhide_app():
@@ -496,11 +477,10 @@ def handle_unhide_app():
               "unhide_app", target=app_id,
               details="Восстановлено")
 
-    return {"status": "ok", "message": f"Приложение {app_id} восстановлено"}
+    return {"status": "ok", "message": f"Приложение восстановлено"}
 
 
 def handle_delete_app():
-    """Удаление приложения — ТОЛЬКО АДМИН."""
     user = check_auth()
     if not is_admin(user):
         return {"status": "error", "message": "Только админ"}
@@ -525,15 +505,12 @@ def handle_delete_app():
         return {"status": "error", "message": "Ошибка записи"}
 
     write_log(user.get("username"), user.get("role"),
-              "delete_app", target=app_id,
-              details="Удалено навсегда")
+              "delete_app", target=app_id, details="Удалено навсегда")
 
-    return {"status": "ok", "message": f"Приложение {app_id} удалено"}
+    return {"status": "ok", "message": f"Приложение удалено"}
 
 
-# ============================================================
-# СКРЫТИЕ ОТЗЫВОВ
-# ============================================================
+# ==================== ОТЗЫВЫ ====================
 
 def handle_hide_review():
     user = check_auth()
@@ -570,8 +547,7 @@ def handle_hide_review():
 
     write_log(user.get("username"), user.get("role"),
               "hide_review", target=f"{app_id}/{author}",
-              details=f"Скрыт отзыв: {reason}",
-              reason=reason)
+              details=f"Скрыт: {reason}", reason=reason)
 
     return {"status": "ok", "message": "Отзыв скрыт"}
 
@@ -616,7 +592,6 @@ def handle_unhide_review():
 
 
 def handle_delete_review():
-    """Удаление отзыва — ТОЛЬКО АДМИН."""
     user = check_auth()
     if not is_admin(user):
         return {"status": "error", "message": "Только админ"}
@@ -651,27 +626,22 @@ def handle_delete_review():
     return {"status": "ok", "message": "Отзыв удалён"}
 
 
-# ============================================================
-# ЛАЙКИ / ДИЗЛАЙКИ
-# ============================================================
+# ==================== ЛАЙК / ДИЗЛАЙК ====================
 
 def handle_vote_review():
-    """Голосование за отзыв (лайк/дизлайк)."""
-    user = check_auth()
-    if not user:
+    """Голосование за отзыв. Без пароля, по USERNAME."""
+    voter = USERNAME.strip()
+    if not voter:
         return {"status": "error", "message": "Войди в аккаунт"}
 
     payload = json.loads(PAYLOAD)
     app_id = payload.get("app_id", "")
     author = payload.get("author", "")
-    vote = payload.get("vote", "")  # "like" или "dislike"
+    vote = payload.get("vote", "")
 
     if not app_id or not author or vote not in ("like", "dislike", "none"):
         return {"status": "error", "message": "Неверные параметры"}
 
-    voter = user.get("username", "")
-
-    # Нельзя голосовать за свой отзыв
     if voter.lower() == author.lower():
         return {"status": "error", "message": "Нельзя голосовать за свой отзыв"}
 
@@ -685,11 +655,9 @@ def handle_vote_review():
             likes = r.setdefault("likes", [])
             dislikes = r.setdefault("dislikes", [])
 
-            # Убираем старые голоса
             likes[:] = [l for l in likes if l.lower() != voter.lower()]
             dislikes[:] = [d for d in dislikes if d.lower() != voter.lower()]
 
-            # Ставим новый
             if vote == "like":
                 likes.append(voter)
             elif vote == "dislike":
@@ -708,9 +676,7 @@ def handle_vote_review():
     return {"status": "ok", "message": "Голос учтён"}
 
 
-# ============================================================
-# КАТАЛОГ
-# ============================================================
+# ==================== КАТАЛОГ ====================
 
 def handle_update_apps():
     user = check_auth()
@@ -731,9 +697,7 @@ def handle_update_apps():
     return {"status": "error", "message": "Ошибка записи"}
 
 
-# ============================================================
-# ЗАЯВКА НА РАЗРАБОТЧИКА
-# ============================================================
+# ==================== ЗАЯВКА НА РАЗРАБОТЧИКА ====================
 
 def handle_request_developer():
     user = check_auth()
@@ -776,8 +740,7 @@ def handle_request_developer():
         return {"status": "error", "message": "Ошибка записи requests.json"}
 
     write_log(user.get("username"), user.get("role"),
-              "request_developer", target=USERNAME,
-              details="Заявка на разработчика")
+              "request_developer", target=USERNAME)
 
     return {"status": "ok", "message": "Заявка отправлена"}
 
@@ -794,9 +757,7 @@ def handle_get_requests():
     return {"status": "ok", "requests": reqs.get("requests", [])}
 
 
-# ============================================================
-# СОЗДАНИЕ / УДАЛЕНИЕ РЕПО
-# ============================================================
+# ==================== РЕПО ====================
 
 def handle_create_repo():
     user = check_auth()
@@ -872,9 +833,7 @@ def handle_delete_repo():
     return {"status": "error", "message": f"Ошибка: {r.status_code}"}
 
 
-# ============================================================
-# БАН / РАЗБАН / РОЛЬ
-# ============================================================
+# ==================== БАН / РОЛИ ====================
 
 def handle_ban_user():
     user = check_auth()
@@ -889,7 +848,6 @@ def handle_ban_user():
     if not target:
         return {"status": "error", "message": "Не указан target_username"}
 
-    # Нельзя банить себя
     if target.lower() == user.get("username", "").lower():
         return {"status": "error", "message": "Нельзя забанить себя"}
 
@@ -899,14 +857,11 @@ def handle_ban_user():
         if u.get("username", "").lower() == target.lower():
             target_role = u.get("role", "user")
 
-            # Модератор не может банить админов и других модераторов
             if user.get("role") == "moderator" and target_role in ("admin", "moderator"):
                 return {"status": "error", "message": "Нельзя банить админа/модератора"}
 
-            # Админ не может банить других админов
             if user.get("role") == "admin" and target_role == "admin" and blocked:
-                if target.lower() != user.get("username", "").lower():
-                    return {"status": "error", "message": "Нельзя банить админа"}
+                return {"status": "error", "message": "Нельзя банить админа"}
 
             u["blocked"] = blocked
             u["ban_reason"] = reason if blocked else ""
@@ -939,7 +894,6 @@ def handle_set_role():
     if role not in ("user", "developer", "moderator", "admin"):
         return {"status": "error", "message": "Неверная роль"}
 
-    # Защита: нельзя снять админа с себя
     if (target.lower() == user.get("username", "").lower()
             and role != "admin"):
         return {"status": "error",
@@ -964,14 +918,16 @@ def handle_set_role():
     return {"status": "error", "message": "Ошибка записи"}
 
 
-# ============================================================
-# РУЧНОЙ VT-СТАТУС
-# ============================================================
+# ==================== VT ВРУЧНУЮ ====================
 
 def handle_set_vt_status():
-    """Админ/модератор вручную ставит VT-статус приложению."""
-    user = check_auth()
-    if not is_moderator_or_admin(user):
+    """Модератор/админ вручную ставит VT-статус. Без пароля."""
+    username = USERNAME.strip()
+    if not username:
+        return {"status": "error", "message": "Войди в аккаунт"}
+
+    user = get_user_by_username(username)
+    if not user or user.get("role") not in ("moderator", "admin"):
         return {"status": "error", "message": "Только модератор/админ"}
 
     payload = json.loads(PAYLOAD)
@@ -986,25 +942,27 @@ def handle_set_vt_status():
     if vt_status not in ("pending", "safe", "normal", "suspicious", "dangerous"):
         return {"status": "error", "message": "Неверный статус"}
 
-    # Обновляем в apps.json
+    # Обновляем apps.json
     apps, sha = read_json_file("apps.json")
-    if apps is None:
-        return {"status": "error", "message": "apps.json не найден"}
-
     found = False
-    for a in apps.get("apps", []):
-        if a.get("id") == app_id:
-            a["vt_status"] = vt_status
-            a["vt_link"] = vt_link
-            a["vt_manual"] = True
-            a["vt_manual_by"] = user.get("username", "")
-            a["vt_manual_link"] = vt_link
-            a["vt_manual_comment"] = comment
-            found = True
-            break
 
+    if apps:
+        for a in apps.get("apps", []):
+            if a.get("id") == app_id:
+                a["vt_status"] = vt_status
+                a["vt_link"] = vt_link
+                a["vt_manual"] = True
+                a["vt_manual_by"] = username
+                a["vt_manual_link"] = vt_link
+                a["vt_manual_comment"] = comment
+                found = True
+                break
+
+        if found:
+            write_json_file("apps.json", apps, sha, f"VT manual {app_id}")
+
+    # Если не в apps.json — может быть в pending
     if not found:
-        # Может быть в pending
         pending, p_sha = read_json_file("pending_apps.json")
         if pending:
             for p in pending.get("pending_apps", []):
@@ -1012,7 +970,7 @@ def handle_set_vt_status():
                     p["vt_status"] = vt_status
                     p["vt_link"] = vt_link
                     p["vt_manual"] = True
-                    p["vt_manual_by"] = user.get("username", "")
+                    p["vt_manual_by"] = username
                     p["vt_manual_link"] = vt_link
                     p["vt_manual_comment"] = comment
                     found = True
@@ -1024,9 +982,7 @@ def handle_set_vt_status():
     if not found:
         return {"status": "error", "message": "Приложение не найдено"}
 
-    write_json_file("apps.json", apps, sha, f"VT manual {app_id}")
-
-    write_log(user.get("username"), user.get("role"),
+    write_log(username, user.get("role", "user"),
               "set_vt_status", target=app_id,
               details=f"VT вручную: {vt_status}",
               reason=comment)
@@ -1034,9 +990,7 @@ def handle_set_vt_status():
     return {"status": "ok", "message": "VT-статус установлен"}
 
 
-# ============================================================
-# ЛОГИ
-# ============================================================
+# ==================== ЛОГИ ====================
 
 def handle_get_logs():
     user = check_auth()
@@ -1045,26 +999,18 @@ def handle_get_logs():
 
     payload = json.loads(PAYLOAD)
     limit = payload.get("limit", 200)
-    action_filter = payload.get("action", "")  # опционально
 
     logs, _ = read_json_file("logs.json")
     if logs is None:
         return {"status": "ok", "logs": []}
 
     logs_list = logs.get("logs", [])
-
-    if action_filter:
-        logs_list = [l for l in logs_list if l.get("action") == action_filter]
-
-    # Сортируем: свежие сверху
     logs_list = sorted(logs_list, key=lambda l: l.get("id", 0), reverse=True)
 
     return {"status": "ok", "logs": logs_list[:limit]}
 
 
-# ============================================================
-# VIRUSTOTAL (автоматическая проверка)
-# ============================================================
+# ==================== VIRUSTOTAL (авто) ====================
 
 def handle_scan_file():
     payload = json.loads(PAYLOAD)
@@ -1186,9 +1132,7 @@ def handle_check_scan():
     return {"status": "ok", "vt_status": "pending"}
 
 
-# ============================================================
-# MAIN
-# ============================================================
+# ==================== MAIN ====================
 
 def main():
     actions = {
