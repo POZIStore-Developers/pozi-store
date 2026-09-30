@@ -12,6 +12,21 @@
           "Timoger"
         ],
         "dislikes": []
+      },
+      {
+        "author": "Timoger",
+        "rating": 4,
+        "text": "рофл браузер",
+        "date": "2026-09-30T21:42:12.608937",
+        "edited": false,
+        "images": [
+          "https://github.com/POZIStore-Developers/pozi-store-server-timoger/releases/download/review/images.25.jpg"
+        ],
+        "likes": [],
+        "dislikes": [],
+        "hidden": false,
+        "hidden_by": "",
+        "hidden_reason": ""
       }
     ]
   }
