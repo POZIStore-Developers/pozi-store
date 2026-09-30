@@ -6,7 +6,11 @@
         "rating": 5,
         "text": "это кстати мой браузер, зацените)",
         "date": "2026-09-27T17:28:22.089309",
-        "edited": false
+        "edited": false,
+        "likes": [
+          "POZIHUME"
+        ],
+        "dislikes": []
       }
     ]
   }
