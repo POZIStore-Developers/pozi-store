@@ -29,6 +29,16 @@
       "target": "Timoger",
       "details": "Бан: по приколу",
       "reason": "по приколу"
+    },
+    {
+      "id": 4,
+      "time": "2026-09-30T17:28:14.234699",
+      "user": "POZIHUME",
+      "role": "admin",
+      "action": "unban_user",
+      "target": "Timoger",
+      "details": "Разбан: ",
+      "reason": ""
     }
   ]
 }
