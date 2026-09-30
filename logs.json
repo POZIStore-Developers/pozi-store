@@ -9,6 +9,16 @@
       "target": "timohet347",
       "details": "Новая роль: moderator",
       "reason": ""
+    },
+    {
+      "id": 2,
+      "time": "2026-09-30T17:24:14.172004",
+      "user": "POZIHUME",
+      "role": "admin",
+      "action": "login",
+      "target": "POZIHUME",
+      "details": "",
+      "reason": ""
     }
   ]
 }
