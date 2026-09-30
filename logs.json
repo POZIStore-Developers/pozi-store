@@ -59,6 +59,16 @@
       "target": "test",
       "details": "Бан: по приколу",
       "reason": "по приколу"
+    },
+    {
+      "id": 7,
+      "time": "2026-09-30T17:30:42.310780",
+      "user": "POZIHUME",
+      "role": "admin",
+      "action": "set_role",
+      "target": "Timoger",
+      "details": "Новая роль: moderator",
+      "reason": ""
     }
   ]
 }
