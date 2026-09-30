@@ -69,6 +69,16 @@
       "target": "Timoger",
       "details": "Новая роль: moderator",
       "reason": ""
+    },
+    {
+      "id": 8,
+      "time": "2026-09-30T17:32:18.619057",
+      "user": "Timoger",
+      "role": "moderator",
+      "action": "login",
+      "target": "Timoger",
+      "details": "",
+      "reason": ""
     }
   ]
 }
