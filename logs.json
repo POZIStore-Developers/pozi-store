@@ -39,6 +39,16 @@
       "target": "Timoger",
       "details": "Разбан: ",
       "reason": ""
+    },
+    {
+      "id": 5,
+      "time": "2026-09-30T17:28:59.322327",
+      "user": "POZIHUME",
+      "role": "admin",
+      "action": "unban_user",
+      "target": "test",
+      "details": "Разбан: ",
+      "reason": ""
     }
   ]
 }
