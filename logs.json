@@ -19,6 +19,16 @@
       "target": "POZIHUME",
       "details": "",
       "reason": ""
+    },
+    {
+      "id": 3,
+      "time": "2026-09-30T17:25:54.566538",
+      "user": "POZIHUME",
+      "role": "admin",
+      "action": "ban_user",
+      "target": "Timoger",
+      "details": "Бан: по приколу",
+      "reason": "по приколу"
     }
   ]
 }
