@@ -1,6 +1,6 @@
 """
 Серверный обработчик для POZIStore.
-Модерация + VirusTotal + баны с причиной.
+Модерация + VT + скрытие + логи + роли.
 """
 import os
 import json
@@ -29,6 +29,8 @@ VT_HEADERS = {
     "x-apikey": VT_API_KEY,
     "Accept": "application/json"
 }
+
+MAX_LOGS = 2000
 
 
 # ============================================================
@@ -61,6 +63,41 @@ def write_json_file(path, content, sha, message):
 
 
 # ============================================================
+# ЛОГИ
+# ============================================================
+
+def write_log(user, role, action, target="", details="", reason=""):
+    """Записывает действие в logs.json."""
+    try:
+        logs, sha = read_json_file("logs.json")
+        if logs is None:
+            logs = {"logs": []}
+            sha = None
+
+        logs_list = logs.get("logs", [])
+        next_id = max((l.get("id", 0) for l in logs_list), default=0) + 1
+
+        logs_list.append({
+            "id": next_id,
+            "time": datetime.now().isoformat(),
+            "user": user or "unknown",
+            "role": role or "user",
+            "action": action,
+            "target": target,
+            "details": details,
+            "reason": reason,
+        })
+
+        if len(logs_list) > MAX_LOGS:
+            logs_list = logs_list[-MAX_LOGS:]
+
+        logs["logs"] = logs_list
+        write_json_file("logs.json", logs, sha, f"Log: {action}")
+    except Exception as e:
+        print(f"[logs] Ошибка: {e}")
+
+
+# ============================================================
 # АВТОРИЗАЦИЯ
 # ============================================================
 
@@ -74,6 +111,14 @@ def check_auth():
             if stored and bcrypt.checkpw(PASSWORD.encode(), stored.encode()):
                 return u
     return None
+
+
+def is_moderator_or_admin(user):
+    return user and user.get("role") in ("moderator", "admin")
+
+
+def is_admin(user):
+    return user and user.get("role") == "admin"
 
 
 # ============================================================
@@ -135,6 +180,7 @@ def handle_register():
     if not write_json_file("users.json", users, sha, f"Register {USERNAME}"):
         return {"status": "error", "message": "Ошибка записи users.json"}
 
+    write_log(USERNAME, "user", "register", target=USERNAME)
     return {"status": "ok", "user_id": next_id, "username": USERNAME}
 
 
@@ -150,6 +196,9 @@ def handle_login():
             msg += f". Причина: {reason}"
         return {"status": "error", "message": msg}
 
+    write_log(user.get("username"), user.get("role", "user"), "login",
+              target=user.get("username"))
+
     return {
         "status": "ok",
         "user_id": user.get("id"),
@@ -163,10 +212,6 @@ def handle_login():
 # ============================================================
 
 def handle_request_publish():
-    """
-    Разработчик отправляет приложение на модерацию.
-    Приложение уходит в pending_apps.json.
-    """
     user = check_auth()
     if not user:
         return {"status": "error", "message": "Неверный логин или пароль"}
@@ -185,19 +230,21 @@ def handle_request_publish():
         pending = {"pending_apps": []}
         sha = None
 
-    # Удаляем старую заявку с таким же id (если повторная отправка)
     pending["pending_apps"] = [
         p for p in pending.get("pending_apps", [])
         if p.get("id") != app_data["id"]
     ]
 
-    # Добавляем новую
     app_data["submitted_at"] = datetime.now().isoformat()
     app_data["submitted_by"] = user.get("username", "")
     app_data["edit_mode"] = edit_mode
     app_data["vt_status"] = app_data.get("vt_status", "pending")
     app_data["vt_link"] = app_data.get("vt_link", "")
     app_data["vt_analysis_id"] = app_data.get("vt_analysis_id", "")
+    app_data["vt_manual"] = False
+    app_data["vt_manual_by"] = ""
+    app_data["vt_manual_link"] = ""
+    app_data["vt_manual_comment"] = ""
     app_data["status"] = "pending"
     app_data["reject_reason"] = ""
 
@@ -209,6 +256,10 @@ def handle_request_publish():
     ):
         return {"status": "error", "message": "Ошибка записи pending_apps.json"}
 
+    write_log(user.get("username"), user.get("role"),
+              "publish_request", target=app_data["id"],
+              details=f"Заявка на публикацию: {app_data.get('name')}")
+
     return {
         "status": "ok",
         "message": "Заявка отправлена на модерацию",
@@ -217,9 +268,8 @@ def handle_request_publish():
 
 
 def handle_get_pending_apps():
-    """Список всех заявок (только админ)."""
     user = check_auth()
-    if not user or user.get("role") != "admin":
+    if not is_moderator_or_admin(user):
         return {"status": "error", "message": "Нет прав"}
 
     pending, _ = read_json_file("pending_apps.json")
@@ -230,7 +280,6 @@ def handle_get_pending_apps():
 
 
 def handle_get_my_pending_apps():
-    """Заявки текущего разработчика (для консоли)."""
     user = check_auth()
     if not user:
         return {"status": "error", "message": "Неверный логин или пароль"}
@@ -248,10 +297,9 @@ def handle_get_my_pending_apps():
 
 
 def handle_approve_app():
-    """Админ одобряет заявку. Приложение уходит в apps.json."""
     user = check_auth()
-    if not user or user.get("role") != "admin":
-        return {"status": "error", "message": "Только админ"}
+    if not is_moderator_or_admin(user):
+        return {"status": "error", "message": "Только модератор/админ"}
 
     payload = json.loads(PAYLOAD)
     app_id = payload.get("app_id", "")
@@ -259,7 +307,6 @@ def handle_approve_app():
     if not app_id:
         return {"status": "error", "message": "Нет app_id"}
 
-    # 1. Читаем pending
     pending, p_sha = read_json_file("pending_apps.json")
     if pending is None:
         return {"status": "error", "message": "pending_apps.json не найден"}
@@ -275,29 +322,41 @@ def handle_approve_app():
 
     edit_mode = target.get("edit_mode", False)
 
-    # 2. Читаем apps.json
     apps, a_sha = read_json_file("apps.json")
     if apps is None:
         apps = {"apps": []}
         a_sha = None
 
-    # 3. Готовим данные для apps.json
+    # Готовим данные для apps.json
     app_for_catalog = {k: v for k, v in target.items()
                        if k not in ("submitted_at", "submitted_by",
                                     "edit_mode", "status", "reject_reason")}
 
+    # Дефолтные поля
+    app_for_catalog.setdefault("hidden", False)
+    app_for_catalog.setdefault("hidden_by", "")
+    app_for_catalog.setdefault("hidden_reason", "")
+    app_for_catalog.setdefault("vt_manual", False)
+    app_for_catalog.setdefault("vt_manual_by", "")
+    app_for_catalog.setdefault("vt_manual_link", "")
+    app_for_catalog.setdefault("vt_manual_comment", "")
+
     if edit_mode:
-        # Обновляем существующее
         found = False
         for i, a in enumerate(apps.get("apps", [])):
             if a.get("id") == app_id:
+                # Сохраняем старые hidden-поля
+                for key in ("hidden", "hidden_by", "hidden_reason",
+                            "vt_manual", "vt_manual_by",
+                            "vt_manual_link", "vt_manual_comment"):
+                    if key not in app_for_catalog and key in a:
+                        app_for_catalog[key] = a[key]
                 apps["apps"][i] = app_for_catalog
                 found = True
                 break
         if not found:
             apps.setdefault("apps", []).append(app_for_catalog)
     else:
-        # Добавляем новое
         exists = any(a.get("id") == app_id for a in apps.get("apps", []))
         if not exists:
             apps.setdefault("apps", []).append(app_for_catalog)
@@ -305,21 +364,23 @@ def handle_approve_app():
     if not write_json_file("apps.json", apps, a_sha, f"Approve app {app_id}"):
         return {"status": "error", "message": "Ошибка записи apps.json"}
 
-    # 4. Убираем из pending
     pending["pending_apps"] = [
         p for p in pending.get("pending_apps", [])
         if p.get("id") != app_id
     ]
     write_json_file("pending_apps.json", pending, p_sha, f"Approved {app_id}")
 
+    write_log(user.get("username"), user.get("role"),
+              "approve_app", target=app_id,
+              details=f"Одобрено: {target.get('name')}")
+
     return {"status": "ok", "message": f"Приложение {app_id} одобрено"}
 
 
 def handle_reject_app():
-    """Админ отклоняет заявку. Оставляем в pending со статусом rejected и причиной."""
     user = check_auth()
-    if not user or user.get("role") != "admin":
-        return {"status": "error", "message": "Только админ"}
+    if not is_moderator_or_admin(user):
+        return {"status": "error", "message": "Только модератор/админ"}
 
     payload = json.loads(PAYLOAD)
     app_id = payload.get("app_id", "")
@@ -350,7 +411,301 @@ def handle_reject_app():
     ):
         return {"status": "error", "message": "Ошибка записи"}
 
+    write_log(user.get("username"), user.get("role"),
+              "reject_app", target=app_id,
+              details=f"Отклонено: {reason}",
+              reason=reason)
+
     return {"status": "ok", "message": "Заявка отклонена"}
+
+
+# ============================================================
+# СКРЫТИЕ / ВОССТАНОВЛЕНИЕ ПРИЛОЖЕНИЙ
+# ============================================================
+
+def handle_hide_app():
+    user = check_auth()
+    if not is_moderator_or_admin(user):
+        return {"status": "error", "message": "Только модератор/админ"}
+
+    payload = json.loads(PAYLOAD)
+    app_id = payload.get("app_id", "")
+    reason = payload.get("reason", "")
+
+    if not app_id:
+        return {"status": "error", "message": "Нет app_id"}
+
+    apps, sha = read_json_file("apps.json")
+    if apps is None:
+        return {"status": "error", "message": "apps.json не найден"}
+
+    found = False
+    for a in apps.get("apps", []):
+        if a.get("id") == app_id:
+            a["hidden"] = True
+            a["hidden_by"] = user.get("username", "")
+            a["hidden_reason"] = reason or "Без причины"
+            found = True
+            break
+
+    if not found:
+        return {"status": "error", "message": "Приложение не найдено"}
+
+    if not write_json_file("apps.json", apps, sha, f"Hide app {app_id}"):
+        return {"status": "error", "message": "Ошибка записи"}
+
+    write_log(user.get("username"), user.get("role"),
+              "hide_app", target=app_id,
+              details=f"Скрыто: {reason}",
+              reason=reason)
+
+    return {"status": "ok", "message": f"Приложение {app_id} скрыто"}
+
+
+def handle_unhide_app():
+    user = check_auth()
+    if not is_moderator_or_admin(user):
+        return {"status": "error", "message": "Только модератор/админ"}
+
+    payload = json.loads(PAYLOAD)
+    app_id = payload.get("app_id", "")
+
+    if not app_id:
+        return {"status": "error", "message": "Нет app_id"}
+
+    apps, sha = read_json_file("apps.json")
+    if apps is None:
+        return {"status": "error", "message": "apps.json не найден"}
+
+    found = False
+    for a in apps.get("apps", []):
+        if a.get("id") == app_id:
+            a["hidden"] = False
+            a["hidden_by"] = ""
+            a["hidden_reason"] = ""
+            found = True
+            break
+
+    if not found:
+        return {"status": "error", "message": "Приложение не найдено"}
+
+    if not write_json_file("apps.json", apps, sha, f"Unhide app {app_id}"):
+        return {"status": "error", "message": "Ошибка записи"}
+
+    write_log(user.get("username"), user.get("role"),
+              "unhide_app", target=app_id,
+              details="Восстановлено")
+
+    return {"status": "ok", "message": f"Приложение {app_id} восстановлено"}
+
+
+def handle_delete_app():
+    """Удаление приложения — ТОЛЬКО АДМИН."""
+    user = check_auth()
+    if not is_admin(user):
+        return {"status": "error", "message": "Только админ"}
+
+    payload = json.loads(PAYLOAD)
+    app_id = payload.get("app_id", "")
+
+    if not app_id:
+        return {"status": "error", "message": "Нет app_id"}
+
+    apps, sha = read_json_file("apps.json")
+    if apps is None:
+        return {"status": "error", "message": "apps.json не найден"}
+
+    old_len = len(apps.get("apps", []))
+    apps["apps"] = [a for a in apps.get("apps", []) if a.get("id") != app_id]
+
+    if len(apps["apps"]) == old_len:
+        return {"status": "error", "message": "Приложение не найдено"}
+
+    if not write_json_file("apps.json", apps, sha, f"Delete app {app_id}"):
+        return {"status": "error", "message": "Ошибка записи"}
+
+    write_log(user.get("username"), user.get("role"),
+              "delete_app", target=app_id,
+              details="Удалено навсегда")
+
+    return {"status": "ok", "message": f"Приложение {app_id} удалено"}
+
+
+# ============================================================
+# СКРЫТИЕ ОТЗЫВОВ
+# ============================================================
+
+def handle_hide_review():
+    user = check_auth()
+    if not is_moderator_or_admin(user):
+        return {"status": "error", "message": "Только модератор/админ"}
+
+    payload = json.loads(PAYLOAD)
+    app_id = payload.get("app_id", "")
+    author = payload.get("author", "")
+    reason = payload.get("reason", "")
+
+    if not app_id or not author:
+        return {"status": "error", "message": "Нужны app_id и author"}
+
+    reviews, sha = read_json_file("reviews.json")
+    if reviews is None:
+        return {"status": "error", "message": "reviews.json не найден"}
+
+    found = False
+    for r in reviews.get("reviews", {}).get(app_id, []):
+        if r.get("author") == author:
+            r["hidden"] = True
+            r["hidden_by"] = user.get("username", "")
+            r["hidden_reason"] = reason or "Без причины"
+            found = True
+            break
+
+    if not found:
+        return {"status": "error", "message": "Отзыв не найден"}
+
+    if not write_json_file("reviews.json", reviews, sha,
+                           f"Hide review {app_id}/{author}"):
+        return {"status": "error", "message": "Ошибка записи"}
+
+    write_log(user.get("username"), user.get("role"),
+              "hide_review", target=f"{app_id}/{author}",
+              details=f"Скрыт отзыв: {reason}",
+              reason=reason)
+
+    return {"status": "ok", "message": "Отзыв скрыт"}
+
+
+def handle_unhide_review():
+    user = check_auth()
+    if not is_moderator_or_admin(user):
+        return {"status": "error", "message": "Только модератор/админ"}
+
+    payload = json.loads(PAYLOAD)
+    app_id = payload.get("app_id", "")
+    author = payload.get("author", "")
+
+    if not app_id or not author:
+        return {"status": "error", "message": "Нужны app_id и author"}
+
+    reviews, sha = read_json_file("reviews.json")
+    if reviews is None:
+        return {"status": "error", "message": "reviews.json не найден"}
+
+    found = False
+    for r in reviews.get("reviews", {}).get(app_id, []):
+        if r.get("author") == author:
+            r["hidden"] = False
+            r["hidden_by"] = ""
+            r["hidden_reason"] = ""
+            found = True
+            break
+
+    if not found:
+        return {"status": "error", "message": "Отзыв не найден"}
+
+    if not write_json_file("reviews.json", reviews, sha,
+                           f"Unhide review {app_id}/{author}"):
+        return {"status": "error", "message": "Ошибка записи"}
+
+    write_log(user.get("username"), user.get("role"),
+              "unhide_review", target=f"{app_id}/{author}",
+              details="Отзыв восстановлен")
+
+    return {"status": "ok", "message": "Отзыв восстановлен"}
+
+
+def handle_delete_review():
+    """Удаление отзыва — ТОЛЬКО АДМИН."""
+    user = check_auth()
+    if not is_admin(user):
+        return {"status": "error", "message": "Только админ"}
+
+    payload = json.loads(PAYLOAD)
+    app_id = payload.get("app_id", "")
+    author = payload.get("author", "")
+
+    if not app_id or not author:
+        return {"status": "error", "message": "Нужны app_id и author"}
+
+    reviews, sha = read_json_file("reviews.json")
+    if reviews is None:
+        return {"status": "error", "message": "reviews.json не найден"}
+
+    old = reviews.get("reviews", {}).get(app_id, [])
+    new = [r for r in old if r.get("author") != author]
+
+    if len(new) == len(old):
+        return {"status": "error", "message": "Отзыв не найден"}
+
+    reviews["reviews"][app_id] = new
+
+    if not write_json_file("reviews.json", reviews, sha,
+                           f"Delete review {app_id}/{author}"):
+        return {"status": "error", "message": "Ошибка записи"}
+
+    write_log(user.get("username"), user.get("role"),
+              "delete_review", target=f"{app_id}/{author}",
+              details="Удалён навсегда")
+
+    return {"status": "ok", "message": "Отзыв удалён"}
+
+
+# ============================================================
+# ЛАЙКИ / ДИЗЛАЙКИ
+# ============================================================
+
+def handle_vote_review():
+    """Голосование за отзыв (лайк/дизлайк)."""
+    user = check_auth()
+    if not user:
+        return {"status": "error", "message": "Войди в аккаунт"}
+
+    payload = json.loads(PAYLOAD)
+    app_id = payload.get("app_id", "")
+    author = payload.get("author", "")
+    vote = payload.get("vote", "")  # "like" или "dislike"
+
+    if not app_id or not author or vote not in ("like", "dislike", "none"):
+        return {"status": "error", "message": "Неверные параметры"}
+
+    voter = user.get("username", "")
+
+    # Нельзя голосовать за свой отзыв
+    if voter.lower() == author.lower():
+        return {"status": "error", "message": "Нельзя голосовать за свой отзыв"}
+
+    reviews, sha = read_json_file("reviews.json")
+    if reviews is None:
+        return {"status": "error", "message": "reviews.json не найден"}
+
+    found = False
+    for r in reviews.get("reviews", {}).get(app_id, []):
+        if r.get("author") == author:
+            likes = r.setdefault("likes", [])
+            dislikes = r.setdefault("dislikes", [])
+
+            # Убираем старые голоса
+            likes[:] = [l for l in likes if l.lower() != voter.lower()]
+            dislikes[:] = [d for d in dislikes if d.lower() != voter.lower()]
+
+            # Ставим новый
+            if vote == "like":
+                likes.append(voter)
+            elif vote == "dislike":
+                dislikes.append(voter)
+
+            found = True
+            break
+
+    if not found:
+        return {"status": "error", "message": "Отзыв не найден"}
+
+    if not write_json_file("reviews.json", reviews, sha,
+                           f"Vote {vote} {app_id}/{author}"):
+        return {"status": "error", "message": "Ошибка записи"}
+
+    return {"status": "ok", "message": "Голос учтён"}
 
 
 # ============================================================
@@ -358,7 +713,6 @@ def handle_reject_app():
 # ============================================================
 
 def handle_update_apps():
-    """Обновить apps.json напрямую (для админа)."""
     user = check_auth()
     if not user:
         return {"status": "error", "message": "Неверный логин или пароль"}
@@ -386,7 +740,7 @@ def handle_request_developer():
     if not user:
         return {"status": "error", "message": "Неверный логин или пароль"}
 
-    if user.get("role") in ("developer", "admin"):
+    if user.get("role") in ("developer", "moderator", "admin"):
         return {"status": "error", "message": "Ты уже разработчик"}
 
     payload = json.loads(PAYLOAD)
@@ -421,12 +775,16 @@ def handle_request_developer():
     if not write_json_file("requests.json", reqs, sha, f"Request from {USERNAME}"):
         return {"status": "error", "message": "Ошибка записи requests.json"}
 
+    write_log(user.get("username"), user.get("role"),
+              "request_developer", target=USERNAME,
+              details="Заявка на разработчика")
+
     return {"status": "ok", "message": "Заявка отправлена"}
 
 
 def handle_get_requests():
     user = check_auth()
-    if not user or user.get("role") != "admin":
+    if not is_moderator_or_admin(user):
         return {"status": "error", "message": "Нет прав"}
 
     reqs, _ = read_json_file("requests.json")
@@ -442,7 +800,7 @@ def handle_get_requests():
 
 def handle_create_repo():
     user = check_auth()
-    if not user or user.get("role") != "admin":
+    if not is_admin(user):
         return {"status": "error", "message": "Только админ"}
 
     payload = json.loads(PAYLOAD)
@@ -465,7 +823,7 @@ def handle_create_repo():
     )
 
     if r.status_code not in (201, 422):
-        return {"status": "error", "message": f"Ошибка создания: {r.status_code} {r.text[:200]}"}
+        return {"status": "error", "message": f"Ошибка создания: {r.status_code}"}
 
     users, sha = read_json_file("users.json")
     for u in users.get("users", []):
@@ -484,12 +842,16 @@ def handle_create_repo():
         ]
         write_json_file("requests.json", reqs, req_sha, f"Clear requests {target_username}")
 
-    return {"status": "ok", "message": f"Репозиторий {repo_name} создан, {target_username} — developer"}
+    write_log(user.get("username"), user.get("role"),
+              "create_repo", target=target_username,
+              details=f"Создан {repo_name}")
+
+    return {"status": "ok", "message": f"Репозиторий {repo_name} создан"}
 
 
 def handle_delete_repo():
     user = check_auth()
-    if not user or user.get("role") != "admin":
+    if not is_admin(user):
         return {"status": "error", "message": "Только админ"}
 
     payload = json.loads(PAYLOAD)
@@ -504,8 +866,10 @@ def handle_delete_repo():
     )
 
     if r.status_code == 204:
+        write_log(user.get("username"), user.get("role"),
+                  "delete_repo", target=repo_name)
         return {"status": "ok", "message": f"Репо {repo_name} удалён"}
-    return {"status": "error", "message": f"Ошибка удаления: {r.status_code}"}
+    return {"status": "error", "message": f"Ошибка: {r.status_code}"}
 
 
 # ============================================================
@@ -514,8 +878,8 @@ def handle_delete_repo():
 
 def handle_ban_user():
     user = check_auth()
-    if not user or user.get("role") != "admin":
-        return {"status": "error", "message": "Только админ"}
+    if not is_moderator_or_admin(user):
+        return {"status": "error", "message": "Только модератор/админ"}
 
     payload = json.loads(PAYLOAD)
     target = payload.get("target_username", "")
@@ -525,10 +889,25 @@ def handle_ban_user():
     if not target:
         return {"status": "error", "message": "Не указан target_username"}
 
+    # Нельзя банить себя
+    if target.lower() == user.get("username", "").lower():
+        return {"status": "error", "message": "Нельзя забанить себя"}
+
     users, sha = read_json_file("users.json")
     found = False
     for u in users.get("users", []):
         if u.get("username", "").lower() == target.lower():
+            target_role = u.get("role", "user")
+
+            # Модератор не может банить админов и других модераторов
+            if user.get("role") == "moderator" and target_role in ("admin", "moderator"):
+                return {"status": "error", "message": "Нельзя банить админа/модератора"}
+
+            # Админ не может банить других админов
+            if user.get("role") == "admin" and target_role == "admin" and blocked:
+                if target.lower() != user.get("username", "").lower():
+                    return {"status": "error", "message": "Нельзя банить админа"}
+
             u["blocked"] = blocked
             u["ban_reason"] = reason if blocked else ""
             found = True
@@ -539,6 +918,10 @@ def handle_ban_user():
 
     if write_json_file("users.json", users, sha,
                        f"{'Ban' if blocked else 'Unban'} {target}"):
+        write_log(user.get("username"), user.get("role"),
+                  "ban_user" if blocked else "unban_user",
+                  target=target, details=f"{'Бан' if blocked else 'Разбан'}: {reason}",
+                  reason=reason)
         return {"status": "ok",
                 "message": f"{'Забанен' if blocked else 'Разбанен'} {target}"}
     return {"status": "error", "message": "Ошибка записи"}
@@ -546,14 +929,14 @@ def handle_ban_user():
 
 def handle_set_role():
     user = check_auth()
-    if not user or user.get("role") != "admin":
+    if not is_admin(user):
         return {"status": "error", "message": "Только админ"}
 
     payload = json.loads(PAYLOAD)
     target = payload.get("target_username", "")
     role = payload.get("role", "user")
 
-    if role not in ("user", "developer", "admin"):
+    if role not in ("user", "developer", "moderator", "admin"):
         return {"status": "error", "message": "Неверная роль"}
 
     # Защита: нельзя снять админа с себя
@@ -574,16 +957,116 @@ def handle_set_role():
         return {"status": "error", "message": "Юзер не найден"}
 
     if write_json_file("users.json", users, sha, f"Set role {target}={role}"):
+        write_log(user.get("username"), user.get("role"),
+                  "set_role", target=target,
+                  details=f"Новая роль: {role}")
         return {"status": "ok", "message": f"Роль {role} для {target}"}
     return {"status": "error", "message": "Ошибка записи"}
 
 
 # ============================================================
-# VIRUSTOTAL
+# РУЧНОЙ VT-СТАТУС
+# ============================================================
+
+def handle_set_vt_status():
+    """Админ/модератор вручную ставит VT-статус приложению."""
+    user = check_auth()
+    if not is_moderator_or_admin(user):
+        return {"status": "error", "message": "Только модератор/админ"}
+
+    payload = json.loads(PAYLOAD)
+    app_id = payload.get("app_id", "")
+    vt_status = payload.get("vt_status", "")
+    vt_link = payload.get("vt_link", "")
+    comment = payload.get("comment", "")
+
+    if not app_id:
+        return {"status": "error", "message": "Нет app_id"}
+
+    if vt_status not in ("pending", "safe", "normal", "suspicious", "dangerous"):
+        return {"status": "error", "message": "Неверный статус"}
+
+    # Обновляем в apps.json
+    apps, sha = read_json_file("apps.json")
+    if apps is None:
+        return {"status": "error", "message": "apps.json не найден"}
+
+    found = False
+    for a in apps.get("apps", []):
+        if a.get("id") == app_id:
+            a["vt_status"] = vt_status
+            a["vt_link"] = vt_link
+            a["vt_manual"] = True
+            a["vt_manual_by"] = user.get("username", "")
+            a["vt_manual_link"] = vt_link
+            a["vt_manual_comment"] = comment
+            found = True
+            break
+
+    if not found:
+        # Может быть в pending
+        pending, p_sha = read_json_file("pending_apps.json")
+        if pending:
+            for p in pending.get("pending_apps", []):
+                if p.get("id") == app_id:
+                    p["vt_status"] = vt_status
+                    p["vt_link"] = vt_link
+                    p["vt_manual"] = True
+                    p["vt_manual_by"] = user.get("username", "")
+                    p["vt_manual_link"] = vt_link
+                    p["vt_manual_comment"] = comment
+                    found = True
+                    break
+            if found:
+                write_json_file("pending_apps.json", pending, p_sha,
+                                f"VT manual {app_id}")
+
+    if not found:
+        return {"status": "error", "message": "Приложение не найдено"}
+
+    write_json_file("apps.json", apps, sha, f"VT manual {app_id}")
+
+    write_log(user.get("username"), user.get("role"),
+              "set_vt_status", target=app_id,
+              details=f"VT вручную: {vt_status}",
+              reason=comment)
+
+    return {"status": "ok", "message": "VT-статус установлен"}
+
+
+# ============================================================
+# ЛОГИ
+# ============================================================
+
+def handle_get_logs():
+    user = check_auth()
+    if not is_moderator_or_admin(user):
+        return {"status": "error", "message": "Нет прав"}
+
+    payload = json.loads(PAYLOAD)
+    limit = payload.get("limit", 200)
+    action_filter = payload.get("action", "")  # опционально
+
+    logs, _ = read_json_file("logs.json")
+    if logs is None:
+        return {"status": "ok", "logs": []}
+
+    logs_list = logs.get("logs", [])
+
+    if action_filter:
+        logs_list = [l for l in logs_list if l.get("action") == action_filter]
+
+    # Сортируем: свежие сверху
+    logs_list = sorted(logs_list, key=lambda l: l.get("id", 0), reverse=True)
+
+    return {"status": "ok", "logs": logs_list[:limit]}
+
+
+# ============================================================
+# VIRUSTOTAL (автоматическая проверка)
 # ============================================================
 
 def handle_scan_file():
-    """Отправляет URL файла в VirusTotal. Не требует пароля."""
     payload = json.loads(PAYLOAD)
     file_url = payload.get("file_url", "")
     app_id = payload.get("app_id", "")
@@ -605,10 +1088,7 @@ def handle_scan_file():
         return {"status": "error", "message": f"Ошибка VT: {e}"}
 
     if r.status_code not in (200, 201):
-        return {
-            "status": "error",
-            "message": f"VT вернул {r.status_code}: {r.text[:200]}"
-        }
+        return {"status": "error", "message": f"VT {r.status_code}"}
 
     analysis_id = r.json().get("data", {}).get("id", "")
     if not analysis_id:
@@ -616,7 +1096,6 @@ def handle_scan_file():
 
     vt_link = f"https://www.virustotal.com/gui/url/{analysis_id.split('-')[-1]}"
 
-    # Обновляем pending_apps.json
     pending, p_sha = read_json_file("pending_apps.json")
     if pending is None:
         return {"status": "error", "message": "pending_apps.json не найден"}
@@ -632,7 +1111,7 @@ def handle_scan_file():
 
     return {
         "status": "ok",
-        "message": "Файл отправлен в VirusTotal",
+        "message": "Файл отправлен в VT",
         "analysis_id": analysis_id,
         "vt_link": vt_link,
         "vt_status": "pending"
@@ -640,7 +1119,6 @@ def handle_scan_file():
 
 
 def handle_check_scan():
-    """Проверяет статус сканирования в VT. Обновляет pending_apps.json."""
     payload = json.loads(PAYLOAD)
     app_id = payload.get("app_id", "")
 
@@ -677,7 +1155,7 @@ def handle_check_scan():
         return {"status": "error", "message": f"Ошибка VT: {e}"}
 
     if r.status_code != 200:
-        return {"status": "error", "message": f"VT вернул {r.status_code}"}
+        return {"status": "error", "message": f"VT {r.status_code}"}
 
     data = r.json().get("data", {})
     attrs = data.get("attributes", {})
@@ -705,7 +1183,7 @@ def handle_check_scan():
     target["vt_status"] = "pending"
     write_json_file("pending_apps.json", pending, sha, f"VT pending {app_id}")
 
-    return {"status": "ok", "vt_status": "pending", "vt_raw_status": status}
+    return {"status": "ok", "vt_status": "pending"}
 
 
 # ============================================================
@@ -730,6 +1208,15 @@ def main():
         "get_my_pending_apps": handle_get_my_pending_apps,
         "approve_app": handle_approve_app,
         "reject_app": handle_reject_app,
+        "hide_app": handle_hide_app,
+        "unhide_app": handle_unhide_app,
+        "delete_app": handle_delete_app,
+        "hide_review": handle_hide_review,
+        "unhide_review": handle_unhide_review,
+        "delete_review": handle_delete_review,
+        "vote_review": handle_vote_review,
+        "set_vt_status": handle_set_vt_status,
+        "get_logs": handle_get_logs,
         "scan_file": handle_scan_file,
         "check_scan": handle_check_scan,
     }
