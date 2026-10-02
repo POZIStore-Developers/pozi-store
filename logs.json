@@ -99,6 +99,16 @@
       "target": "build_a_house",
       "details": "VT вручную: safe",
       "reason": "Выпущено официальным разработчиком POZIHUME"
+    },
+    {
+      "id": 11,
+      "time": "2026-10-02T14:37:00.653005",
+      "user": "POZIHUME",
+      "role": "user",
+      "action": "add_to_library",
+      "target": "pozibrowser",
+      "details": "",
+      "reason": ""
     }
   ]
 }
