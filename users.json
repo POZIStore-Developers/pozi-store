@@ -31,7 +31,10 @@
       "banner": "",
       "description": "",
       "website": "",
-      "created_at": "2026-09-27T18:31:20.802546"
+      "created_at": "2026-09-27T18:31:20.802546",
+      "library": [
+        "pozibrowser"
+      ]
     },
     {
       "id": 4,
