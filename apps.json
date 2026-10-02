@@ -25,7 +25,13 @@
       "updated_at": "2026-09-27T16:35:17.517293",
       "platform": "windows",
       "age_rating": "0+",
-      "system_requirements": "Windows 10, 4 ГБ ОЗУ"
+      "system_requirements": "Windows 10, 4 ГБ ОЗУ",
+      "vt_status": "safe",
+      "vt_link": "",
+      "vt_manual": true,
+      "vt_manual_by": "POZIHUME",
+      "vt_manual_link": "",
+      "vt_manual_comment": ""
     },
     {
       "id": "build_a_house",
