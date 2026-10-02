@@ -149,6 +149,16 @@
       "target": "pozibrowser",
       "details": "Отклонено: ОШИБКА",
       "reason": "ОШИБКА"
+    },
+    {
+      "id": 16,
+      "time": "2026-10-02T16:59:02.144043",
+      "user": "POZIHUME",
+      "role": "admin",
+      "action": "publish_request",
+      "target": "build_a_house",
+      "details": "Заявка: Build a House",
+      "reason": ""
     }
   ]
 }
