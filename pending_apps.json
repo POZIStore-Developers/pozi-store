@@ -1,3 +1,47 @@
 {
-  "pending_apps": []
+  "pending_apps": [
+    {
+      "id": "pozibrowser",
+      "name": "POZIBrowser",
+      "description": "Удобный Браузер от POZIHUME",
+      "readme": "Удобный браузер от POZIHUME, \nPOZIBrowser - браузер для людей сделаннный людьми, красивый , прозрачность, подсветка, все это ждет вас в POZIBrowser",
+      "version": "1.0",
+      "category": "🌐 Браузеры",
+      "category_id": "browsers",
+      "developer": "POZIHUME",
+      "platform": "windows",
+      "icon": "https://github.com/POZIStore-Developers/pozi-store-server-pozihume/releases/download/v1.0/a9f5767a-deb1-40f3-b306-729af98764d9.ico",
+      "banner": "https://github.com/POZIStore-Developers/pozi-store-server-pozihume/releases/download/v1.0/ChatGPT.Image.26.2026.18_24_00.png",
+      "shortcut_icon": "https://github.com/POZIStore-Developers/pozi-store-server-pozihume/releases/download/v1.0/a9f5767a-deb1-40f3-b306-729af98764d9.ico",
+      "screenshots": [
+        "https://github.com/POZIStore-Developers/pozi-store-server-pozihume/releases/download/v1.0/screenshot_pozibrowser_0.png",
+        "https://github.com/POZIStore-Developers/pozi-store-server-pozihume/releases/download/v1.0/screenshot_pozibrowser_1.png",
+        "https://github.com/POZIStore-Developers/pozi-store-server-pozihume/releases/download/v1.0/screenshot_pozibrowser_2.png",
+        "https://github.com/POZIStore-Developers/pozi-store-server-pozihume/releases/download/v1.0/screenshot_pozibrowser_3.png"
+      ],
+      "download_url": "https://github.com/POZIStore-Developers/pozi-store-server-pozihume/releases/download/v1.0/Pozibrowser.exe",
+      "changelog": "",
+      "allow_old_versions": true,
+      "age_rating": "0+",
+      "system_requirements": "Windows 10, 4 ГБ ОЗУ",
+      "trailer_url": "",
+      "demo_type": "html",
+      "demo_url": "https://github.com/POZIStore-Developers/pozi-store-server-pozihume/releases/download/v1.0/deepseek_html_20261002_83a433.html",
+      "demo_html": "C:/Users/timoh/Downloads/deepseek_html_20261002_83a433.html",
+      "size": "?",
+      "downloads": 0,
+      "submitted_at": "2026-10-02T16:45:47.535614",
+      "submitted_by": "POZIHUME",
+      "edit_mode": true,
+      "vt_status": "pending",
+      "vt_link": "",
+      "vt_analysis_id": "",
+      "vt_manual": false,
+      "vt_manual_by": "",
+      "vt_manual_link": "",
+      "vt_manual_comment": "",
+      "status": "pending",
+      "reject_reason": ""
+    }
+  ]
 }
