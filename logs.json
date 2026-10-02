@@ -119,6 +119,16 @@
       "target": "build_a_house",
       "details": "",
       "reason": ""
+    },
+    {
+      "id": 13,
+      "time": "2026-10-02T16:45:49.179697",
+      "user": "POZIHUME",
+      "role": "admin",
+      "action": "publish_request",
+      "target": "pozibrowser",
+      "details": "Заявка: POZIBrowser",
+      "reason": ""
     }
   ]
 }
