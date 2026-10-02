@@ -159,6 +159,16 @@
       "target": "build_a_house",
       "details": "Заявка: Build a House",
       "reason": ""
+    },
+    {
+      "id": 17,
+      "time": "2026-10-02T17:00:35.871543",
+      "user": "POZIHUME",
+      "role": "admin",
+      "action": "set_vt_status",
+      "target": "build_a_house",
+      "details": "VT вручную: safe",
+      "reason": "Официальная игра от POZIHUME"
     }
   ]
 }
