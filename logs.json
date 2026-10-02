@@ -139,6 +139,16 @@
       "target": "pozibrowser",
       "details": "VT вручную: safe",
       "reason": ""
+    },
+    {
+      "id": 15,
+      "time": "2026-10-02T16:48:43.871705",
+      "user": "POZIHUME",
+      "role": "admin",
+      "action": "reject_app",
+      "target": "pozibrowser",
+      "details": "Отклонено: ОШИБКА",
+      "reason": "ОШИБКА"
     }
   ]
 }
