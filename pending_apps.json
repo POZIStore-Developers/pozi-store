@@ -40,8 +40,9 @@
       "vt_manual_by": "",
       "vt_manual_link": "",
       "vt_manual_comment": "",
-      "status": "pending",
-      "reject_reason": ""
+      "status": "rejected",
+      "reject_reason": "ОШИБКА",
+      "rejected_at": "2026-10-02T16:48:42.422793"
     }
   ]
 }
