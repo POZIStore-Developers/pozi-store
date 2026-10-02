@@ -169,6 +169,16 @@
       "target": "build_a_house",
       "details": "VT вручную: safe",
       "reason": "Официальная игра от POZIHUME"
+    },
+    {
+      "id": 18,
+      "time": "2026-10-02T17:01:10.097952",
+      "user": "POZIHUME",
+      "role": "admin",
+      "action": "approve_app",
+      "target": "build_a_house",
+      "details": "Одобрено: Build a House",
+      "reason": ""
     }
   ]
 }
