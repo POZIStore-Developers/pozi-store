@@ -39,7 +39,8 @@
       "description": "Построй дом и защитись от зомби!",
       "readme": "Построй дом и защитись от зомби! Build a house - игра с более чем 40+ режимами, мультяшная графика, понятная задумка",
       "version": "3.11",
-      "category": "Экшен, Аркады",
+      "category": "👾 Аркады",
+      "category_id": "arcade",
       "developer": "POZIHUME",
       "platform": "android",
       "icon": "https://github.com/POZIStore-Developers/pozi-store-server-pozihume/releases/download/v3.11/photo_2023-03-08_15-03-37.jpg",
@@ -55,15 +56,21 @@
       "age_rating": "0+",
       "system_requirements": "",
       "trailer_url": "https://github.com/POZIStore-Developers/pozi-store-server-pozihume/releases/download/v3.11/3.Build.a.house.get-save.com.1.mp4",
-      "demo_url": "",
+      "demo_type": "html",
+      "demo_url": "https://github.com/POZIStore-Developers/pozi-store-server-pozihume/releases/download/v3.11/deepseek_html_20261002_83a433.html",
+      "demo_html": "C:/Users/timoh/Downloads/deepseek_html_20261002_83a433.html",
       "size": "?",
-      "vt_status": "safe",
-      "vt_link": "https://www.virustotal.com/gui/file/a465e2f6bae1fef27435726aa2ac185d22702a1dd1a7c8af3ae1cd7da9f2b0b9",
+      "downloads": 0,
+      "vt_status": "pending",
+      "vt_link": "",
       "vt_analysis_id": "",
-      "vt_manual": true,
-      "vt_manual_by": "POZIHUME",
-      "vt_manual_link": "https://www.virustotal.com/gui/file/a465e2f6bae1fef27435726aa2ac185d22702a1dd1a7c8af3ae1cd7da9f2b0b9",
-      "vt_manual_comment": "Официальная игра от POZIHUME"
+      "vt_manual": false,
+      "vt_manual_by": "",
+      "vt_manual_link": "",
+      "vt_manual_comment": "",
+      "hidden": false,
+      "hidden_by": "",
+      "hidden_reason": ""
     }
   ]
 }
