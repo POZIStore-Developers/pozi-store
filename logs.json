@@ -129,6 +129,16 @@
       "target": "pozibrowser",
       "details": "Заявка: POZIBrowser",
       "reason": ""
+    },
+    {
+      "id": 14,
+      "time": "2026-10-02T16:47:02.177598",
+      "user": "POZIHUME",
+      "role": "admin",
+      "action": "set_vt_status",
+      "target": "pozibrowser",
+      "details": "VT вручную: safe",
+      "reason": ""
     }
   ]
 }
