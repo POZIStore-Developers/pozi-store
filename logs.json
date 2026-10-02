@@ -109,6 +109,16 @@
       "target": "pozibrowser",
       "details": "",
       "reason": ""
+    },
+    {
+      "id": 12,
+      "time": "2026-10-02T14:37:38.139154",
+      "user": "POZIHUME",
+      "role": "user",
+      "action": "add_to_library",
+      "target": "build_a_house",
+      "details": "",
+      "reason": ""
     }
   ]
 }
