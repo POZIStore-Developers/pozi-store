@@ -179,6 +179,16 @@
       "target": "build_a_house",
       "details": "Одобрено: Build a House",
       "reason": ""
+    },
+    {
+      "id": 19,
+      "time": "2026-10-03T08:00:26.232418",
+      "user": "POZIHUME",
+      "role": "admin",
+      "action": "login",
+      "target": "POZIHUME",
+      "details": "",
+      "reason": ""
     }
   ]
 }
