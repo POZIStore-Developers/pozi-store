@@ -6,6 +6,7 @@ import json
 import bcrypt
 import requests
 import base64
+import secrets
 from datetime import datetime
 
 
@@ -113,6 +114,21 @@ def is_admin(user):
     return user and user.get("role") == "admin"
 
 
+def _generate_session_token():
+    """Генерирует случайный токен 64 символа."""
+    return secrets.token_urlsafe(48)
+
+
+def _find_user_by_session(users, token):
+    """Ищет юзера по session_token."""
+    if not token:
+        return None
+    for u in users.get("users", []):
+        if u.get("session_token") == token:
+            return u
+    return None
+
+
 # ==================== ПРОСТЫЕ ====================
 
 def handle_hello():
@@ -135,6 +151,63 @@ def handle_check_auth():
     }
 
 
+# ==================== SESSION ====================
+
+def handle_check_session():
+    """Проверяет session_token."""
+    payload = json.loads(PAYLOAD)
+    token = payload.get("session_token", "")
+    if not token:
+        return {"status": "error", "message": "Нет токена"}
+
+    users, _ = read_json_file("users.json")
+    if not users:
+        return {"status": "error", "message": "users.json не найден"}
+
+    user = _find_user_by_session(users, token)
+    if not user:
+        return {"status": "error", "message": "Сессия недействительна"}
+
+    if user.get("blocked"):
+        reason = user.get("ban_reason", "")
+        msg = "Аккаунт заблокирован"
+        if reason:
+            msg += f". Причина: {reason}"
+        return {"status": "error", "message": msg}
+
+    return {
+        "status": "ok",
+        "user_id": user.get("id"),
+        "username": user.get("username"),
+        "role": user.get("role", "user"),
+    }
+
+
+def handle_logout_session():
+    """Удаляет session_token у юзера."""
+    payload = json.loads(PAYLOAD)
+    token = payload.get("session_token", "")
+    if not token:
+        return {"status": "error", "message": "Нет токена"}
+
+    users, sha = read_json_file("users.json")
+    if not users:
+        return {"status": "error", "message": "users.json не найден"}
+
+    found = False
+    for u in users.get("users", []):
+        if u.get("session_token") == token:
+            u["session_token"] = ""
+            found = True
+            break
+
+    if not found:
+        return {"status": "error", "message": "Сессия не найдена"}
+
+    write_json_file("users.json", users, sha, "Logout session")
+    return {"status": "ok", "message": "Сессия удалена"}
+
+
 # ==================== РЕГИСТРАЦИЯ / ЛОГИН ====================
 
 def handle_register():
@@ -149,6 +222,8 @@ def handle_register():
 
     password_hash = bcrypt.hashpw(PASSWORD.encode(), bcrypt.gensalt()).decode()
     next_id = max([u.get("id", 0) for u in users.get("users", [])] + [0]) + 1
+    session_token = _generate_session_token()
+
     new_user = {
         "id": next_id,
         "username": USERNAME,
@@ -161,13 +236,20 @@ def handle_register():
         "description": "",
         "website": "",
         "library": [],
+        "session_token": session_token,
         "created_at": datetime.now().isoformat()
     }
     users.setdefault("users", []).append(new_user)
     if not write_json_file("users.json", users, sha, f"Register {USERNAME}"):
         return {"status": "error", "message": "Ошибка записи users.json"}
     write_log(USERNAME, "user", "register", target=USERNAME)
-    return {"status": "ok", "user_id": next_id, "username": USERNAME}
+    return {
+        "status": "ok",
+        "user_id": next_id,
+        "username": USERNAME,
+        "role": "user",
+        "session_token": session_token,
+    }
 
 
 def handle_login():
@@ -180,13 +262,24 @@ def handle_login():
         if reason:
             msg += f". Причина: {reason}"
         return {"status": "error", "message": msg}
+
+    # === Генерируем новый session_token и сохраняем ===
+    users, sha = read_json_file("users.json")
+    session_token = _generate_session_token()
+    for u in users.get("users", []):
+        if u.get("username", "").lower() == user.get("username", "").lower():
+            u["session_token"] = session_token
+            break
+    write_json_file("users.json", users, sha, f"Login {user.get('username')}")
+
     write_log(user.get("username"), user.get("role", "user"), "login",
               target=user.get("username"))
     return {
         "status": "ok",
         "user_id": user.get("id"),
         "username": user.get("username"),
-        "role": user.get("role", "user")
+        "role": user.get("role", "user"),
+        "session_token": session_token,
     }
 
 
@@ -205,7 +298,6 @@ def handle_request_publish():
     if not app_data.get("id"):
         return {"status": "error", "message": "Нет id приложения"}
 
-    # === Валидация новых полей ===
     install_type = app_data.get("install_type", "exe")
     if install_type not in ("exe", "zip"):
         install_type = "exe"
@@ -217,11 +309,8 @@ def handle_request_publish():
             "status": "error",
             "message": "Для ZIP нужно указать имя запускаемого .exe"
         }
-    # Для exe — launch_exe необязателен, но если есть — сохраняем
     app_data["launch_exe"] = launch_exe
-
-    source_url = app_data.get("source_url", "")
-    app_data["source_url"] = source_url
+    app_data["source_url"] = app_data.get("source_url", "")
 
     pending, sha = read_json_file("pending_apps.json")
     if pending is None:
@@ -307,7 +396,6 @@ def handle_approve_app():
     app_for_catalog = {k: v for k, v in target.items()
                        if k not in ("submitted_at", "submitted_by",
                                     "edit_mode", "status", "reject_reason")}
-    # === Новые поля по умолчанию ===
     app_for_catalog.setdefault("hidden", False)
     app_for_catalog.setdefault("hidden_by", "")
     app_for_catalog.setdefault("hidden_reason", "")
@@ -325,7 +413,6 @@ def handle_approve_app():
         found = False
         for i, a in enumerate(apps.get("apps", [])):
             if a.get("id") == app_id:
-                # Сохраняем служебные поля, которые не приходят от клиента
                 for key in ("hidden", "hidden_by", "hidden_reason",
                             "vt_manual", "vt_manual_by",
                             "vt_manual_link", "vt_manual_comment",
@@ -644,7 +731,6 @@ def handle_add_to_library():
     if not write_json_file("users.json", users, sha, f"Add to library {app_id}"):
         return {"status": "error", "message": "Ошибка записи"}
 
-    # === Счётчик +1 (только если реально добавили) ===
     if added:
         _change_downloads(app_id, +1)
 
@@ -674,7 +760,6 @@ def handle_remove_from_library():
     if not write_json_file("users.json", users, sha, f"Remove from library {app_id}"):
         return {"status": "error", "message": "Ошибка записи"}
 
-    # === Счётчик -1 (только если реально убрали) ===
     if removed:
         _change_downloads(app_id, -1)
 
@@ -683,7 +768,7 @@ def handle_remove_from_library():
 
 
 def handle_increment_downloads():
-    """Оставлено для совместимости. Клиент больше не вызывает."""
+    """Оставлено для совместимости."""
     payload = json.loads(PAYLOAD)
     app_id = payload.get("app_id", "")
     if not app_id:
@@ -1159,6 +1244,8 @@ def main():
     actions = {
         "hello": handle_hello,
         "check_auth": handle_check_auth,
+        "check_session": handle_check_session,
+        "logout_session": handle_logout_session,
         "register": handle_register,
         "login": handle_login,
         "update_apps": handle_update_apps,
