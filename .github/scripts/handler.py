@@ -205,6 +205,24 @@ def handle_request_publish():
     if not app_data.get("id"):
         return {"status": "error", "message": "Нет id приложения"}
 
+    # === Валидация новых полей ===
+    install_type = app_data.get("install_type", "exe")
+    if install_type not in ("exe", "zip"):
+        install_type = "exe"
+    app_data["install_type"] = install_type
+
+    launch_exe = app_data.get("launch_exe", "")
+    if install_type == "zip" and not launch_exe:
+        return {
+            "status": "error",
+            "message": "Для ZIP нужно указать имя запускаемого .exe"
+        }
+    # Для exe — launch_exe необязателен, но если есть — сохраняем
+    app_data["launch_exe"] = launch_exe
+
+    source_url = app_data.get("source_url", "")
+    app_data["source_url"] = source_url
+
     pending, sha = read_json_file("pending_apps.json")
     if pending is None:
         pending = {"pending_apps": []}
@@ -228,9 +246,11 @@ def handle_request_publish():
     if not write_json_file("pending_apps.json", pending, sha,
                            f"Pending app: {app_data['id']}"):
         return {"status": "error", "message": "Ошибка записи pending_apps.json"}
+
+    details = f"Заявка: {app_data.get('name')} ({install_type})"
     write_log(user.get("username"), user.get("role"),
               "publish_request", target=app_data["id"],
-              details=f"Заявка: {app_data.get('name')}")
+              details=details)
     return {"status": "ok", "message": "Заявка отправлена", "app_id": app_data["id"]}
 
 
@@ -287,6 +307,7 @@ def handle_approve_app():
     app_for_catalog = {k: v for k, v in target.items()
                        if k not in ("submitted_at", "submitted_by",
                                     "edit_mode", "status", "reject_reason")}
+    # === Новые поля по умолчанию ===
     app_for_catalog.setdefault("hidden", False)
     app_for_catalog.setdefault("hidden_by", "")
     app_for_catalog.setdefault("hidden_reason", "")
@@ -296,11 +317,15 @@ def handle_approve_app():
     app_for_catalog.setdefault("vt_manual_comment", "")
     app_for_catalog.setdefault("downloads", 0)
     app_for_catalog.setdefault("category_id", "other")
+    app_for_catalog.setdefault("install_type", "exe")
+    app_for_catalog.setdefault("launch_exe", "")
+    app_for_catalog.setdefault("source_url", "")
 
     if edit_mode:
         found = False
         for i, a in enumerate(apps.get("apps", [])):
             if a.get("id") == app_id:
+                # Сохраняем служебные поля, которые не приходят от клиента
                 for key in ("hidden", "hidden_by", "hidden_reason",
                             "vt_manual", "vt_manual_by",
                             "vt_manual_link", "vt_manual_comment",
@@ -326,7 +351,7 @@ def handle_approve_app():
     write_json_file("pending_apps.json", pending, p_sha, f"Approved {app_id}")
     write_log(user.get("username"), user.get("role"),
               "approve_app", target=app_id,
-              details=f"Одобрено: {target.get('name')}")
+              details=f"Одобрено: {target.get('name')} ({app_for_catalog.get('install_type')})")
     return {"status": "ok", "message": f"Приложение {app_id} одобрено"}
 
 
@@ -573,7 +598,25 @@ def handle_vote_review():
     return {"status": "ok", "message": "Голос учтён"}
 
 
-# ==================== БИБЛИОТЕКА ====================
+# ==================== БИБЛИОТЕКА + СЧЁТЧИК ====================
+
+def _change_downloads(app_id, delta):
+    """Меняет счётчик downloads в apps.json (delta = +1 или -1)."""
+    apps, sha = read_json_file("apps.json")
+    if apps is None:
+        return False
+    for a in apps.get("apps", []):
+        if a.get("id") == app_id:
+            new_val = a.get("downloads", 0) + delta
+            if new_val < 0:
+                new_val = 0
+            a["downloads"] = new_val
+            break
+    else:
+        return False
+    return write_json_file("apps.json", apps, sha,
+                           f"Downloads {'+' if delta > 0 else ''}{delta} {app_id}")
+
 
 def handle_add_to_library():
     username = USERNAME.strip()
@@ -587,17 +630,24 @@ def handle_add_to_library():
     if users is None:
         return {"status": "error", "message": "users.json не найден"}
     found = False
+    added = False
     for u in users.get("users", []):
         if u.get("username", "").lower() == username.lower():
             lib = u.setdefault("library", [])
             if app_id not in lib:
                 lib.append(app_id)
+                added = True
             found = True
             break
     if not found:
         return {"status": "error", "message": "Юзер не найден"}
     if not write_json_file("users.json", users, sha, f"Add to library {app_id}"):
         return {"status": "error", "message": "Ошибка записи"}
+
+    # === Счётчик +1 (только если реально добавили) ===
+    if added:
+        _change_downloads(app_id, +1)
+
     write_log(username, "user", "add_to_library", target=app_id)
     return {"status": "ok", "message": "Добавлено в библиотеку"}
 
@@ -613,34 +663,38 @@ def handle_remove_from_library():
     users, sha = read_json_file("users.json")
     if users is None:
         return {"status": "error", "message": "users.json не найден"}
+    removed = False
     for u in users.get("users", []):
         if u.get("username", "").lower() == username.lower():
             lib = u.get("library", [])
             if app_id in lib:
                 lib.remove(app_id)
+                removed = True
             break
     if not write_json_file("users.json", users, sha, f"Remove from library {app_id}"):
         return {"status": "error", "message": "Ошибка записи"}
+
+    # === Счётчик -1 (только если реально убрали) ===
+    if removed:
+        _change_downloads(app_id, -1)
+
     write_log(username, "user", "remove_from_library", target=app_id)
     return {"status": "ok", "message": "Убрано из библиотеки"}
 
 
 def handle_increment_downloads():
+    """Оставлено для совместимости. Клиент больше не вызывает."""
     payload = json.loads(PAYLOAD)
     app_id = payload.get("app_id", "")
     if not app_id:
         return {"status": "error", "message": "Нет app_id"}
-    apps, sha = read_json_file("apps.json")
-    if apps is None:
-        return {"status": "error", "message": "apps.json не найден"}
-    for a in apps.get("apps", []):
-        if a.get("id") == app_id:
-            a["downloads"] = a.get("downloads", 0) + 1
-            break
-    if not write_json_file("apps.json", apps, sha, f"Download {app_id}"):
-        return {"status": "error", "message": "Ошибка записи"}
-    return {"status": "ok", "message": "Счётчик увеличен"}
+    ok = _change_downloads(app_id, +1)
+    if ok:
+        return {"status": "ok", "message": "Счётчик увеличен"}
+    return {"status": "error", "message": "Приложение не найдено"}
 
+
+# ==================== ЖАЛОБЫ ====================
 
 def handle_report_app():
     username = USERNAME.strip()
@@ -674,8 +728,6 @@ def handle_report_app():
               details=f"{reason_text}: {description[:100]}")
     return {"status": "ok", "message": "Жалоба отправлена"}
 
-
-# ==================== ЖАЛОБЫ ====================
 
 def handle_get_reports():
     user = check_auth()
