@@ -189,6 +189,16 @@
       "target": "POZIHUME",
       "details": "",
       "reason": ""
+    },
+    {
+      "id": 20,
+      "time": "2026-10-03T08:14:29.309603",
+      "user": "POZIHUME",
+      "role": "user",
+      "action": "remove_from_library",
+      "target": "pozibrowser",
+      "details": "",
+      "reason": ""
     }
   ]
 }
