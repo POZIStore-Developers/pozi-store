@@ -199,6 +199,16 @@
       "target": "pozibrowser",
       "details": "",
       "reason": ""
+    },
+    {
+      "id": 21,
+      "time": "2026-10-03T08:16:01.199615",
+      "user": "POZIHUME",
+      "role": "user",
+      "action": "add_to_library",
+      "target": "pozibrowser",
+      "details": "",
+      "reason": ""
     }
   ]
 }
