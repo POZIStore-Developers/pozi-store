@@ -209,6 +209,16 @@
       "target": "pozibrowser",
       "details": "",
       "reason": ""
+    },
+    {
+      "id": 22,
+      "time": "2026-10-12T18:57:45.422065",
+      "user": "POZIHUME",
+      "role": "admin",
+      "action": "login",
+      "target": "POZIHUME",
+      "details": "",
+      "reason": ""
     }
   ]
 }
