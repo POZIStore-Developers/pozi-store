@@ -72,6 +72,48 @@
       "hidden": false,
       "hidden_by": "",
       "hidden_reason": ""
+    },
+    {
+      "id": "memu",
+      "name": "MEmu",
+      "description": "MEmu - среда запуска Android на вашем ПК",
+      "readme": "MEmu - среда запуска Android на вашем ПК\n\nMEmu - эмулятор Android, который позволяет запустить apk приложения прямо на вашей Windows \n\n(Разработчик MEmu — компания Microvirt, POZIHUME Не является разработчиком продукта MEmu и не несет за него ответсвенность)",
+      "version": "9.5.7.0",
+      "category": "🛠 Утилиты",
+      "category_id": "utilities",
+      "developer": "POZIHUME",
+      "platform": "windows",
+      "icon": "https://github.com/POZIStore-Developers/pozi-store-server-pozihume/releases/download/v9.5.7.0/memu-2572043422.png",
+      "banner": "https://github.com/POZIStore-Developers/pozi-store-server-pozihume/releases/download/v9.5.7.0/OIP-3748036230.jpg",
+      "shortcut_icon": "",
+      "screenshots": [
+        "https://github.com/POZIStore-Developers/pozi-store-server-pozihume/releases/download/v9.5.7.0/screenshot_memu_0.png",
+        "https://github.com/POZIStore-Developers/pozi-store-server-pozihume/releases/download/v9.5.7.0/screenshot_memu_1.png"
+      ],
+      "download_url": "https://github.com/POZIStore-Developers/pozi-store-server-pozihume/releases/download/v9.5.7.0/Memu-Setup.exe",
+      "changelog": "",
+      "allow_old_versions": true,
+      "age_rating": "0+",
+      "system_requirements": "Windows 10, 8 ГБ ОЗУ+",
+      "trailer_url": "",
+      "demo_type": "",
+      "demo_url": "",
+      "demo_html": "",
+      "install_type": "exe",
+      "launch_exe": "",
+      "source_url": "",
+      "size": "?",
+      "downloads": 0,
+      "vt_status": "pending",
+      "vt_link": "",
+      "vt_analysis_id": "",
+      "vt_manual": false,
+      "vt_manual_by": "",
+      "vt_manual_link": "",
+      "vt_manual_comment": "",
+      "hidden": false,
+      "hidden_by": "",
+      "hidden_reason": ""
     }
   ]
 }
