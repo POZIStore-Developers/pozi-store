@@ -219,6 +219,16 @@
       "target": "POZIHUME",
       "details": "",
       "reason": ""
+    },
+    {
+      "id": 23,
+      "time": "2026-10-13T19:34:44.836560",
+      "user": "POZIHUME",
+      "role": "admin",
+      "action": "publish_request",
+      "target": "memu",
+      "details": "Заявка: MEmu (exe)",
+      "reason": ""
     }
   ]
 }
