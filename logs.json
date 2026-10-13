@@ -239,6 +239,16 @@
       "target": "memu",
       "details": "Одобрено: MEmu (exe)",
       "reason": ""
+    },
+    {
+      "id": 25,
+      "time": "2026-10-13T19:41:19.246850",
+      "user": "POZIHUME",
+      "role": "user",
+      "action": "add_to_library",
+      "target": "memu",
+      "details": "",
+      "reason": ""
     }
   ]
 }
