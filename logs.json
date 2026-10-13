@@ -229,6 +229,16 @@
       "target": "memu",
       "details": "Заявка: MEmu (exe)",
       "reason": ""
+    },
+    {
+      "id": 24,
+      "time": "2026-10-13T19:39:27.812668",
+      "user": "POZIHUME",
+      "role": "admin",
+      "action": "approve_app",
+      "target": "memu",
+      "details": "Одобрено: MEmu (exe)",
+      "reason": ""
     }
   ]
 }
